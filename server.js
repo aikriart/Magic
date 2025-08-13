@@ -1,38 +1,29 @@
-// server.js — минимальная рабочая версия под Render
+// server.js — рабочая версия под Render (статическая главная + генерация)
 require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
 const { mkdir, writeFile } = require('fs').promises;
+const { randomUUID } = require('crypto');
 const OpenAI = require('openai');
 
 const app = express();
 
-// парсим JSON и отдаём статику из /public
+// 1) Раздаём /public как статику (главная страница и готовые картинки)
 app.use(express.json({ limit: '2mb' }));
-app.use('/public', express.static(path.join(process.cwd(), 'public')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
-// клиент OpenAI
+// 2) Клиент OpenAI
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// корневая страница (если у тебя есть index.html в корне проекта)
-// ВЕРСИЯ ОБРАБОТЧИКА /generate, которая сохраняет файл и отдаёт URL из /public
-const path = require('path');
-const { writeFile, mkdir } = require('fs').promises;
-const { randomUUID } = require('crypto');
-
-// Гарантируем папку public/out
-async function ensureDir(p) { try { await mkdir(p, { recursive: true }); } catch(e){} }
-
+// 3) Генерация изображения (жёстко фиксируем разрешённый вертикальный размер)
 app.post('/generate', async (req, res) => {
   try {
-    const prompt = (req.body?.prompt || '').toString().trim();
-    if (!prompt) return res.status(400).json({ error: 'Empty prompt' });
+    const prompt = (req.body?.prompt || '').toString().trim().slice(0, 400);
+    if (!prompt) return res.status(400).json({ error: 'Введите описание (prompt).' });
 
-    // Размер, который точно поддерживает API (вертикальный)
-    const SIZE = '1024x1536';
+    const SIZE = '1024x1536'; // допустимый вертикальный размер
 
-    // Генерация
     const result = await client.images.generate({
       model: 'gpt-image-1',
       prompt,
@@ -40,44 +31,19 @@ app.post('/generate', async (req, res) => {
       quality: 'high'
     });
 
-    // Получаем base64
-    const b64 = result.data[0].b64_json;
-    if (!b64) return res.status(500).json({ error: 'No image data' });
-
-    // Сохраняем в /public/out/<uuid>.png
-    const id = randomUUID();
-    const outDir = path.join(process.cwd(), 'public', 'out');
-    await ensureDir(outDir);
-    const filePath = path.join(outDir, `${id}.png`);
-    await writeFile(filePath, Buffer.from(b64, 'base64'));
-
-    // Отдаём URL, который статика сможет раздать
-    return res.json({ url: `/out/${id}.png` });
-  } catch (err) {
-    console.error('GENERATION ERROR:', err?.message || err);
-    return res.status(500).json({ error: 'generation_failed' });
-  }
-});
-
-// На всякий случай простой health-check
-app.get('/ping', (_req, res) => res.send('ok'));
-
-
-    const b64 = result.data?.[0]?.b64_json;
-    if (!b64) throw new Error('No image data from OpenAI');
+    const b64 = result?.data?.[0]?.b64_json;
+    if (!b64) return res.status(500).json({ error: 'OpenAI не вернул изображение.' });
 
     const imgBuffer = Buffer.from(b64, 'base64');
 
-    // 4) Сохранение
     const outDir = path.join(process.cwd(), 'public', 'out');
     await mkdir(outDir, { recursive: true });
 
-    const filename = `${Date.now()}.png`;
-    const filepath = path.join(outDir, filename);
-    await writeFile(filepath, imgBuffer);
+    const filename = `${randomUUID()}.png`;
+    await writeFile(path.join(outDir, filename), imgBuffer);
 
-    // 5) Отдаём ссылку клиенту
-    return res.json({ url: `/public/out/${filename}` });
+    // Возвращаем относительный путь (раздаётся статикой)
+    return res.json({ url: `/out/${filename}` });
   } catch (err) {
     console.error('IMAGE GEN ERROR:', err?.response?.data || err);
     return res.status(500).json({
@@ -87,8 +53,11 @@ app.get('/ping', (_req, res) => res.send('ok'));
   }
 });
 
-// порт для Render
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// 4) Все остальные маршруты — на главную страницу из /public
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
 });
+
+// 5) Порт для Render
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
