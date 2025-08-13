@@ -63,18 +63,47 @@ function buildPrompt(userWords, presetKey='beauty') {
 
 app.post('/generate', async (req, res) => {
   try {
-    const { words, preset } = req.body || {};
-    if (!words || typeof words !== 'string' || words.trim().length < 2) {
-      return res.status(400).json({ error: 'Введите 2–3 ключевых слова.' });
-    }
-    const prompt = buildPrompt(words, preset);
+    // 1) Берём текст
+    const prompt = (req.body?.prompt || '').toString().slice(0, 400);
 
-    const imgResp = await client.images.generate({
+    // 2) ЖЁСТКО фиксируем допустимый вертикальный размер
+    const SIZE = '1024x1536';
+
+    // 3) Генерация изображения
+    const result = await client.images.generate({
       model: 'gpt-image-1',
       prompt,
-      size: '1024x1536', // vertical
+      size: SIZE,      // <— только этот размер
       quality: 'high'
     });
+
+    // 4) Сохранение файла (как у тебя было)
+    const b64 = result.data[0].b64_json;
+    const img = Buffer.from(b64, 'base64');
+
+    // Убедимся, что папка есть
+    const outDir = path.join(process.cwd(), 'public', 'out');
+    await mkdir(outDir, { recursive: true });
+
+    const filename = `${Date.now()}.png`;
+    const filepath = path.join(outDir, filename);
+    await writeFile(filepath, img);
+
+    // 5) Отдаём ссылку клиенту
+    return res.json({ url: `/public/out/${filename}` });
+  } catch (err) {
+    console.error('IMAGE GEN ERROR:', {
+      message: err?.message,
+      status: err?.status,
+      data: err?.response?.data
+    });
+    return res.status(500).json({
+      error: 'Сбой генерации',
+      details: err?.response?.data?.error?.message || err?.message || 'unknown'
+    });
+  }
+});
+
 
     const b64 = imgResp.data && imgResp.data[0] && imgResp.data[0].b64_json;
     if (!b64) {
