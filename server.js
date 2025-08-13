@@ -1,4 +1,4 @@
-// server.js — Render-ready, vertical 1024x1792, auto BASE_URL
+// server.js — Render-ready, vertical 1024x1536, auto BASE_URL
 require('dotenv').config();
 const express = require('express');
 const { writeFile, mkdir } = require('fs').promises;
@@ -72,7 +72,7 @@ app.post('/generate', async (req, res) => {
     const imgResp = await client.images.generate({
       model: 'gpt-image-1',
       prompt,
-      size: '1024x1792', // vertical
+      size: '1024x1536', // vertical
       quality: 'high'
     });
 
