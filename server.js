@@ -16,26 +16,52 @@ app.use('/public', express.static(path.join(process.cwd(), 'public')));
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // корневая страница (если у тебя есть index.html в корне проекта)
-app.get('/', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'index.html'));
-});
+// ВЕРСИЯ ОБРАБОТЧИКА /generate, которая сохраняет файл и отдаёт URL из /public
+const path = require('path');
+const { writeFile, mkdir } = require('fs').promises;
+const { randomUUID } = require('crypto');
 
-// === генерация изображения ===
+// Гарантируем папку public/out
+async function ensureDir(p) { try { await mkdir(p, { recursive: true }); } catch(e){} }
+
 app.post('/generate', async (req, res) => {
   try {
-    // 1) текст из формы
-    const prompt = (req.body?.prompt || '').toString().slice(0, 400);
+    const prompt = (req.body?.prompt || '').toString().trim();
+    if (!prompt) return res.status(400).json({ error: 'Empty prompt' });
 
-    // 2) ЖЁСТКО фиксируем поддерживаемый вертикальный размер
+    // Размер, который точно поддерживает API (вертикальный)
     const SIZE = '1024x1536';
 
-    // 3) Генерация
+    // Генерация
     const result = await client.images.generate({
       model: 'gpt-image-1',
       prompt,
       size: SIZE,
       quality: 'high'
     });
+
+    // Получаем base64
+    const b64 = result.data[0].b64_json;
+    if (!b64) return res.status(500).json({ error: 'No image data' });
+
+    // Сохраняем в /public/out/<uuid>.png
+    const id = randomUUID();
+    const outDir = path.join(process.cwd(), 'public', 'out');
+    await ensureDir(outDir);
+    const filePath = path.join(outDir, `${id}.png`);
+    await writeFile(filePath, Buffer.from(b64, 'base64'));
+
+    // Отдаём URL, который статика сможет раздать
+    return res.json({ url: `/out/${id}.png` });
+  } catch (err) {
+    console.error('GENERATION ERROR:', err?.message || err);
+    return res.status(500).json({ error: 'generation_failed' });
+  }
+});
+
+// На всякий случай простой health-check
+app.get('/ping', (_req, res) => res.send('ok'));
+
 
     const b64 = result.data?.[0]?.b64_json;
     if (!b64) throw new Error('No image data from OpenAI');
