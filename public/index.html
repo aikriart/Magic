@@ -1,64 +1,103 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Магический генератор образа — Вертикальный</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>✨ Магический генератор образа — Вертикальный</title>
   <style>
-    body { font-family: -apple-system, Arial, sans-serif; text-align: center; padding: 30px; }
-    input, button, select { padding: 12px; margin: 6px; font-size: 16px; }
-    #result { margin-top: 20px; }
-    img { max-width: 92vw; height: auto; border-radius: 8px; }
-    .note { opacity: 0.7; font-size: 13px; }
-    .preset { margin: 10px 0; }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;line-height:1.45}
+    h1{font-size:28px;margin:0 0 8px}
+    h2{font-size:18px;color:#666;margin:0 0 24px}
+    label{display:block;margin:16px 0 6px}
+    input,select,button,textarea{
+      width:100%;padding:12px 14px;border:1px solid #d0d0d0;border-radius:10px;font-size:16px
+    }
+    button{background:#2b6ef3;color:#fff;border:none;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .row{display:grid;grid-template-columns:1fr 140px;gap:10px}
+    .msg{margin-top:14px;font-size:14px}
+    .err{color:#c62828}
+    .ok{color:#2e7d32}
+    .preview{margin-top:20px}
+    .preview img{width:100%;height:auto;border-radius:12px;border:1px solid #eee}
+    .note{color:#555;font-size:14px;margin-top:10px}
   </style>
 </head>
 <body>
-  <h1>✨ Магический генератор образа — Вертикальный</h1>
-  <p>Введи 2–3 слова, выбери стиль — получи картинку под Reels/TikTok.</p>
+  <h1>✨ Магический генератор образа —<br/>Вертикальный</h1>
+  <h2>Введи 2–3 слова, выбери стиль — получи картинку под Reels/TikTok.</h2>
 
-  <div class="preset">
-    <label for="preset">Стиль:</label>
-    <select id="preset">
-      <option value="beauty" selected>beauty</option>
-      <option value="jewelry">jewelry</option>
-      <option value="90s">90s</option>
-      <option value="noir">noir</option>
-    </select>
+  <label for="style">Стиль:</label>
+  <select id="style">
+    <option value="beauty" selected>beauty</option>
+    <option value="jewelry">jewelry</option>
+    <option value="90s">90s</option>
+    <option value="film">film</option>
+    <option value="glossy">glossy</option>
+  </select>
+
+  <label for="prompt">Описание образа (prompt):</label>
+  <input id="prompt" placeholder="осень золото, тёплый свет, портрет" />
+
+  <div class="row" style="margin-top:12px">
+    <div></div>
+    <button id="go">Создать образ</button>
   </div>
 
-  <input type="text" id="keywords" placeholder="Напр.: осень, золото, загадка" size="40" autocapitalize="off">
-  <button onclick="generateImage()">Создать образ</button>
-  <div id="result"></div>
-  <p class="note">Картинка генерируется вертикальной (1024x1792).</p>
+  <div id="msg" class="msg"></div>
+
+  <div id="preview" class="preview" hidden>
+    <img id="img" alt="Result"/>
+    <div class="note">Картинка генерируется вертикальной (1024×1536).</div>
+  </div>
 
   <script>
-  async function generateImage() {
-    const words = document.getElementById("keywords").value;
-    const preset = document.getElementById("preset").value;
-    const result = document.getElementById("result");
-    if (!words || words.length < 2) {
-      result.innerHTML = "⚠️ Введите 2–3 ключевых слова.";
-      return;
-    }
-    result.innerHTML = "⏳ Генерация... Подожди минутку.";
+    const $ = (s) => document.querySelector(s);
+    const btn = $('#go');
+    const msg = $('#msg');
+    const img = $('#img');
+    const box = $('#preview');
 
-    try {
-      const response = await fetch("/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ words, preset })
-      });
-      const data = await response.json();
-      if (data.error) {
-        result.innerHTML = "❌ Ошибка: " + (data.error || "неизвестная");
+    btn.addEventListener('click', async () => {
+      msg.textContent = '';
+      msg.className = 'msg';
+      box.hidden = true;
+
+      const prompt = $('#prompt').value.trim();
+      const style = $('#style').value;
+
+      if (!prompt) {
+        msg.textContent = 'Ошибка: введите описание (prompt).';
+        msg.classList.add('err');
         return;
       }
-      result.innerHTML = `<p>Готово!</p><img src="${data.imageUrl}" alt="result"><p class="note">Промпт: ${data.promptUsed}</p>`;
-    } catch (e) {
-      result.innerHTML = "❌ Сбой запроса к серверу.";
-    }
-  }
+
+      btn.disabled = true; btn.textContent = 'Генерация...';
+
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, style })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || 'GENERATION_FAILED');
+        }
+
+        img.src = data.image;
+        box.hidden = false;
+        msg.textContent = 'Готово!';
+        msg.classList.add('ok');
+      } catch (e) {
+        msg.textContent = 'Ошибка: ' + (e.message || e);
+        msg.classList.add('err');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Создать образ';
+      }
+    });
   </script>
 </body>
 </html>
