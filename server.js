@@ -1,63 +1,66 @@
-// server.js — рабочая версия под Render (статическая главная + генерация)
+// server.js — Express + OpenAI (вертикальные картинки 1024x1536)
 require('dotenv').config();
-
 const express = require('express');
 const path = require('path');
-const { mkdir, writeFile } = require('fs').promises;
-const { randomUUID } = require('crypto');
+const { mkdir, writeFile } = require('fs/promises');
 const OpenAI = require('openai');
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 1) Раздаём /public как статику (главная страница и готовые картинки)
-app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(process.cwd(), 'public')));
+// раздаём статические файлы из /public
+app.use(express.static('public'));
 
-// 2) Клиент OpenAI
+// OpenAI клиент (ключ берём из переменной окружения)
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// 3) Генерация изображения (жёстко фиксируем разрешённый вертикальный размер)
+// Жёстко фиксируем допустимый вертикальный размер
+const SIZE = '1024x1536';
+
+// API: создание изображения
 app.post('/generate', async (req, res) => {
   try {
-    const prompt = (req.body?.prompt || '').toString().trim().slice(0, 400);
-    if (!prompt) return res.status(400).json({ error: 'Введите описание (prompt).' });
+    const { prompt, style } = req.body || {};
+    const cleanPrompt = (prompt || '').toString().trim();
 
-    const SIZE = '1024x1536'; // допустимый вертикальный размер
+    if (!cleanPrompt) {
+      return res.status(400).json({ error: 'NO_PROMPT' });
+    }
+
+    // Добавим стиль в промпт (необязательно)
+    const fullPrompt = style ? `${cleanPrompt}. Style: ${style}` : cleanPrompt;
 
     const result = await client.images.generate({
       model: 'gpt-image-1',
-      prompt,
+      prompt: fullPrompt,
       size: SIZE,
-      quality: 'high'
+      quality: 'high',
     });
 
-    const b64 = result?.data?.[0]?.b64_json;
-    if (!b64) return res.status(500).json({ error: 'OpenAI не вернул изображение.' });
+    const b64 = result.data[0].b64_json;
+    const buffer = Buffer.from(b64, 'base64');
 
-    const imgBuffer = Buffer.from(b64, 'base64');
-
-    const outDir = path.join(process.cwd(), 'public', 'out');
+    // сохраним файл в /public/out/
+    const outDir = path.join(__dirname, 'public', 'out');
     await mkdir(outDir, { recursive: true });
 
-    const filename = `${randomUUID()}.png`;
-    await writeFile(path.join(outDir, filename), imgBuffer);
+    const filename = `img_${Date.now()}.png`;
+    const absPath = path.join(outDir, filename);
+    await writeFile(absPath, buffer);
 
-    // Возвращаем относительный путь (раздаётся статикой)
-    return res.json({ url: `/out/${filename}` });
-  } catch (err) {
-    console.error('IMAGE GEN ERROR:', err?.response?.data || err);
-    return res.status(500).json({
-      error: 'Сбой генерации',
-      details: err?.response?.data?.error?.message || err?.message || 'unknown'
-    });
+    // отдаём URL для <img>
+    return res.json({ image: `/out/${filename}` });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message || 'GENERATION_FAILED' });
   }
 });
 
-// 4) Все остальные маршруты — на главную страницу из /public
+// чтобы прямой заход по домену открывал страницу
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 5) Порт для Render
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+app.listen(PORT, () => console.log('Server started on', PORT));
