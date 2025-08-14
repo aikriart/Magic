@@ -1,11 +1,11 @@
 {
   "name": "magic",
   "version": "1.0.0",
-  "main": "server.js",
-  "type": "module",
+  "main": "server.cjs",
+  "type": "commonjs",
   "scripts": {
-    "start": "node server.js",
-    "build": "echo 'No build step required'"
+    "start": "node server.cjs",
+    "build": "echo \"No build step required\""
   },
   "dependencies": {
     "express": "^4.19.2",
