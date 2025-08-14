@@ -1,101 +1,114 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>✨ Магический генератор образа — Вертикальный</title>
+  <meta charset="UTF-8">
+  <title>Личный AI-дизайнер</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;line-height:1.45;background:#fafafa}
-    h1{font-size:28px;margin:0 0 8px}
-    .hint{color:#666;margin:0 0 18px}
-    label{display:block;margin:14px 0 6px}
-    input,select,button,textarea{width:100%;padding:12px 14px;border:1px solid #d0d0d0;border-radius:10px;font-size:16px;background:#fff}
-    button{background:#2b6ef3;color:#fff;border:none;cursor:pointer}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .row{display:grid;grid-template-columns:1fr 160px;gap:10px;margin-top:12px}
-    .msg{margin-top:14px;font-size:14px}
-    .err{color:#c62828}
-    .ok{color:#2e7d32}
-    .preview{margin-top:20px}
-    .preview img{width:100%;height:auto;border-radius:12px;border:1px solid #eee;box-shadow:0 6px 18px rgba(0,0,0,.08)}
-    .note{color:#555;font-size:14px;margin-top:10px}
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+    }
+    #styles {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    #styles button {
+      padding: 10px 15px;
+      border: none;
+      cursor: pointer;
+      background: #ddd;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    #styles button.active {
+      background: #4cafef;
+      color: white;
+    }
+    #result img {
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    form {
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    button[type="submit"] {
+      padding: 10px 20px;
+      background: #4cafef;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
-  <h1>✨ Магический генератор образа</h1>
-  <p class="hint">Введи 2–3 слова, выбери стиль и нажми «Создать образ». Размер фиксирован: 1024×1536.</p>
+  <h1>🎨 Личный AI-дизайнер</h1>
 
-  <form id="genForm">
-    <label for="prompt">Описание (prompt):</label>
-    <input id="prompt" name="prompt" placeholder="девушка осень, тёплый свет, портрет" required />
-
-    <label for="style">Стиль (необязательно):</label>
-    <select id="style" name="style">
-      <option value="">без стиля</option>
-      <option value="beauty" selected>beauty</option>
-      <option value="jewelry">jewelry</option>
-      <option value="90s">90s</option>
-      <option value="film">film</option>
-      <option value="glossy">glossy</option>
-    </select>
-
-    <div class="row">
-      <div></div>
-      <button id="go" type="submit">Создать образ</button>
-    </div>
-  </form>
-
-  <div id="msg" class="msg"></div>
-
-  <div id="preview" class="preview" hidden>
-    <img id="img" alt="Результат"/>
-    <div class="note">Файл сохраняется на сервере в <code>/public/out/...</code>.</div>
+  <div id="styles">
+    <button onclick="selectStyle('luxury')">💎 Рекламная роскошь</button>
+    <button onclick="selectStyle('film90s')">📼 Плёночная ностальгия</button>
+    <button onclick="selectStyle('seamist')">🌊 Морская мистика</button>
+    <button onclick="selectStyle('cinematicportrait')">🎬 Кинодрама</button>
+    <button onclick="selectStyle('neoncity')">🌆 Неоновые города</button>
   </div>
 
+  <form id="generateForm">
+    <textarea id="prompt" placeholder="Введите, что хотите создать..."></textarea>
+    <br>
+    <button type="submit">Сгенерировать</button>
+  </form>
+
+  <div id="result"></div>
+
   <script>
-    const $ = s => document.querySelector(s);
-    const form = $('#genForm');
-    const btn  = $('#go');
-    const msg  = $('#msg');
-    const box  = $('#preview');
-    const img  = $('#img');
+    const styles = {
+      "luxury": "ultra realistic cinematic product photography, luxury jewelry and perfume on glossy surface with dramatic lighting and deep shadows, rich gold and black palette, premium magazine style, depth of field, 8k detail",
+      "film90s": "film photography, soft grain texture, 1990s street fashion, vintage cars, natural candid moments, warm muted tones, shallow depth of field, golden hour light, analog retro aesthetic",
+      "seamist": "cinematic seascape with rocky beach and misty mountains, dramatic clouds, gentle sea breeze, soft sunlight breaking through, emotional atmosphere, high detail, 8k ultra realistic",
+      "cinematicportrait": "emotional cinematic portrait, natural window light, dramatic shadows, storytelling composition, shallow depth of field, muted colors, realistic skin texture, high detail",
+      "neoncity": "neon-lit city street at night, wet asphalt reflecting lights, stylish model in glossy fashion outfit, cinematic composition, cyberpunk mood, sharp focus, high detail"
+    };
 
-    form.addEventListener('submit', async (e) => {
+    let selectedStyle = "";
+
+    function selectStyle(styleKey) {
+      selectedStyle = styles[styleKey];
+      document.querySelectorAll('#styles button').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    document.getElementById('generateForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      msg.textContent = '';
-      msg.className = 'msg';
-      box.hidden = true;
-
-      const prompt = $('#prompt').value.trim();
-      const style  = $('#style').value;
-
-      if (!prompt) {
-        msg.textContent = 'Ошибка: введите описание (prompt).';
-        msg.classList.add('err');
-        return;
-      }
-
-      btn.disabled = true; btn.textContent = 'Генерация...';
-
-      try {
-        const res = await fetch('/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, style })
-        });
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data?.details || data?.error || 'GENERATION_FAILED');
-
-        img.src = data.image;            // сервёр возвращает { image: "/out/....png" }
-        box.hidden = false;
-        msg.textContent = 'Готово!';
-        msg.classList.add('ok');
-      } catch (e2) {
-        msg.textContent = '❌ ' + (e2.message || 'Сбой генерации');
-        msg.classList.add('err');
-      } finally {
-        btn.disabled = false; btn.textContent = 'Создать образ';
+      
+      const prompt = document.getElementById('prompt').value;
+      
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, style: selectedStyle })
+      });
+      
+      const data = await res.json();
+      
+      if (data.image) {
+        document.getElementById('result').innerHTML = `<img src="${data.image}" style="max-width:100%">`;
+      } else {
+        alert("Ошибка генерации");
       }
     });
   </script>
