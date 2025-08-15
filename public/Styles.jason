@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "code": "cinematic_fashion",
+    "name": "Cinematic Fashion",
+    "preview": "/Styles/style01.jpg",
+    "prompt": "Кинематографичный портрет крупный план, мягкий рембрандтовский свет, тонкая зернистость, тёплый золотой час, реалистичная кожа, модная съёмка, premium editorial"
+  },
+  {
+    "id": 2,
+    "code": "noir_beauty_bw",
+    "name": "Noir Beauty (B&W)",
+    "preview": "/Styles/style02.jpg",
+    "prompt": "Ч/б портрет с жёсткой полосой света, глубокие тени, плёнка Ilford, контрастная фактура кожи, драматичный взгляд, минималистичный фон"
+  },
+  {
+    "id": 3,
+    "code": "jewelry_macro",
+    "name": "Jewelry Macro Bokeh",
+    "preview": "/Styles/style03.jpg",
+    "prompt": "Макро съёмка украшений: сияющие бриллианты и золото, сильный боке, спекулярные блики, макрообъектив 100mm, чистый фон, luxury"
+  },
+  {
+    "id": 4,
+    "code": "glossy_closeup",
+    "name": "Glossy Beauty Close-Up",
+    "preview": "/Styles/style04.jpg",
+    "prompt": "Бьюти макро: влажные глянцевые губы и сияющая кожа, мягкий дневной свет, high-detail, чистый макияж, skin texture"
+  },
+  {
+    "id": 5,
+    "code": "dark_romance",
+    "name": "Dark Romance",
+    "preview": "/Styles/style05.jpg",
+    "prompt": "Густой low-key портрет в викторианском стиле: кружево, тёмная палитра, мягкий свет сбоку, ощущение тайны, dramatic mood, fine-art"
+  },
+  {
+    "id": 6,
+    "code": "wabi_sabi_interior",
+    "name": "Wabi-Sabi Interior",
+    "preview": "/Styles/style06.jpg",
+    "prompt": "Минималистичный интерьер в японской эстетике wabi-sabi: натуральное дерево, керамика, свет из окна, тёплые нейтральные тона, много воздуха"
+  },
+  {
+    "id": 7,
+    "code": "cyberpunk_neon",
+    "name": "Cyberpunk Neon",
+    "preview": "/Styles/style07.jpg",
+    "prompt": "Портрет в неоновых отражениях: розовый и голубой свет, город ночью, мокрые поверхности, свечение, футуристичный макияж, блики, 35mm"
+  },
+  {
+    "id": 8,
+    "code": "romantic_flower_girl",
+    "name": "Romantic Floral Girl",
+    "preview": "/Styles/style08.jpg",
+    "prompt": "Романтичная девушка в цветах, мягкие пастельные тона, рассеянный свет, shallow depth of field, летний сад, воздушность, dreamy"
+  },
+  {
+    "id": 9,
+    "code": "seaside_dawn",
+    "name": "Seaside Dawn",
+    "preview": "/Styles/style09.jpg",
+    "prompt": "Лайфстайл у моря на рассвете: ветер в волосах, золотой час, мягкие блики воды, кинематографичный кадр, естественная поза"
+  },
+  {
+    "id": 10,
+    "code": "minimal_product",
+    "name": "Minimal Product",
+    "preview": "/Styles/style10.jpg",
+    "prompt": "Минималистичный предметный натюрморт на чистом фоне, мягкие тени, аккуратные рефлексы, e-commerce premium, композиция из 3 предметов"
+  },
+  {
+    "id": 11,
+    "code": "fashion_90s",
+    "name": "90s Analog Fashion",
+    "preview": "/Styles/style11.jpg",
+    "prompt": "Мода 90-х: вспышка в лоб, блеск кожи, насыщенные цвета, зерно плёнки, журналовый кадр, ретро-укладка, простая локация"
+  },
+  {
+    "id": 12,
+    "code": "fineart_caravaggio",
+    "name": "Fine-Art / Caravaggio",
+    "preview": "/Styles/style12.jpg",
+    "prompt": "Fine-art портрет как у Караваджо: тёплый направленный свет из окна, глубокие тени, богатые ткани, барочные детали, классическая поза"
+  },
+  {
+    "id": 13,
+    "code": "crystal_silver_glam",
+    "name": "Crystal & Silver Glam",
+    "preview": "/Styles/style13.jpg",
+    "prompt": "Много блёсток, серебро, стразы, искристое боке, зеркальные блики, эффект фейерверка, high-fashion beauty, luxury glam"
+  },
+  {
+    "id": 14,
+    "code": "gold_onyx_glam",
+    "name": "Gold & Onyx Glam",
+    "preview": "/Styles/style14.jpg",
+    "prompt": "Золото и чёрные стразы: драматический гламур, тёплые блики, контрастные тени, роскошные материалы, вечерний свет"
+  },
+  {
+    "id": 15,
+    "code": "disco_crystal_portrait",
+    "name": "Disco Crystal Portrait",
+    "preview": "/Styles/style15.jpg",
+    "prompt": "Портрет в стиле disco-crystal: хрустальные нити, сотни бликов, мягкий тёплый свет, сияние кожи, модный editorial"
+  }
+]
