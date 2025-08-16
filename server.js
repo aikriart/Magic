@@ -1,66 +1,69 @@
-// server.js — Express + OpenAI (вертикальные картинки 1024x1536)
-require('dotenv').config();
-const express = require('express');
-const path = require('path');
-const { mkdir, writeFile } = require('fs/promises');
-const OpenAI = require('openai');
+// server.js — полный файл
+
+import "dotenv/config";
+import express from "express";
+import bodyParser from "body-parser";
+import Replicate from "replicate";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// раздаём статические файлы из /public
-app.use(express.static('public'));
+// парсим JSON и отдаём статику из /public (index.html, /styles и т.д.)
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(express.static("public"));
 
-// OpenAI клиент (ключ берём из переменной окружения)
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// инициализация Replicate по токену
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN,
+});
 
-// Жёстко фиксируем допустимый вертикальный размер
-const SIZE = '1024x1536';
+// проверка живости
+app.get("/health", (_req, res) => res.send("ok"));
 
-// API: создание изображения
-app.post('/generate', async (req, res) => {
+// основной эндпоинт генерации
+app.post("/api/generate", async (req, res) => {
   try {
-    const { prompt, style } = req.body || {};
-    const cleanPrompt = (prompt || '').toString().trim();
+    const { prompt, reference } = req.body || {};
 
-    if (!cleanPrompt) {
-      return res.status(400).json({ error: 'NO_PROMPT' });
+    if (!prompt || !reference) {
+      return res.status(400).json({
+        error: "Нужны оба поля: prompt и reference (например: style07.jpg)",
+      });
     }
 
-    // Добавим стиль в промпт (необязательно)
-    const fullPrompt = style ? `${cleanPrompt}. Style: ${style}` : cleanPrompt;
+    // Строим ПУБЛИЧНЫЙ HTTPS-URL к твоему референсу.
+    // Можно задать явно через переменную окружения PUBLIC_BASE_URL
+    // (например https://magic-XXXX.onrender.com),
+    // иначе возьмём хост из запроса.
+    const baseUrl =
+      process.env.PUBLIC_BASE_URL || `https://${req.get("host")}`;
+    const imageUrl = `${baseUrl}/styles/${reference}`;
 
-    const result = await client.images.generate({
-      model: 'gpt-image-1',
-      prompt: fullPrompt,
-      size: SIZE,
-      quality: 'high',
+    console.log("[GEN]", { prompt, imageUrl });
+
+    // Вызов модели на Replicate (Flux). При необходимости можно сменить модель.
+    const output = await replicate.run("black-forest-labs/flux-dev", {
+      input: {
+        prompt: prompt,
+        image: imageUrl, // <-- даём модели https-ссылку, а не локальный путь
+      },
     });
 
-    const b64 = result.data[0].b64_json;
-    const buffer = Buffer.from(b64, 'base64');
+    // Replicate обычно возвращает массив ссылок; берём первую
+    const resultUrl = Array.isArray(output) ? output[0] : output;
 
-    // сохраним файл в /public/out/
-    const outDir = path.join(__dirname, 'public', 'out');
-    await mkdir(outDir, { recursive: true });
+    if (!resultUrl) {
+      throw new Error("Replicate не вернул ссылку на изображение");
+    }
 
-    const filename = `img_${Date.now()}.png`;
-    const absPath = path.join(outDir, filename);
-    await writeFile(absPath, buffer);
-
-    // отдаём URL для <img>
-    return res.json({ image: `/out/${filename}` });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: e.message || 'GENERATION_FAILED' });
+    res.json({ imageUrl: resultUrl });
+  } catch (err) {
+    console.error("[ERROR]", err);
+    res.status(500).json({ error: "Ошибка генерации: " + err.message });
   }
 });
 
-// чтобы прямой заход по домену открывал страницу
-app.get('*', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// порт для Render (даёт через env), локально — 3000
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ Server started on http://localhost:${PORT}`);
 });
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log('Server started on', PORT));
