@@ -1,87 +1,88 @@
-// server.js — версия с image-to-image (SDXL)
-
-import "dotenv/config";
-import express from "express";
-import bodyParser from "body-parser";
-import Replicate from "replicate";
+const express = require('express');
+const path = require('path');
+const compression = require('compression');
 
 const app = express();
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(express.static("public")); // index.html + /styles/*.jpg
+const PORT = process.env.PORT || 10000;
 
-// Replicate клиент
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+app.use(compression());
+app.use(express.json({ limit: '2mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Хелпер: собрать публичный URL к референсу
-function buildRefUrl(reference, hostHeader) {
-  const base =
-    (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) ||
-    (hostHeader ? `https://${hostHeader}` : "");
-  const url = `${base}/styles/${reference}`.replace(/([^:]\/)\/+/g, "$1");
-  return encodeURI(url);
-}
-
-// Быстрый дебаг: /debug-ref?file=style07.jpg
-app.get("/debug-ref", (req, res) => {
-  const file = req.query.file || "style01.jpg";
-  const url = buildRefUrl(file, req.get("host"));
-  res.json({ file, url });
-});
-
-// Основной эндпоинт генерации
-app.post("/api/generate", async (req, res) => {
+/**
+ * /api/generate
+ * Работает в двух режимах:
+ * 1) Если задан REPLICATE_VERSION  -> POST /v1/predictions { version, input }
+ * 2) Если задан REPLICATE_MODEL    -> POST /v1/models/{slug}/predictions { input }
+ * Минимально нужен только REPLICATE_API_TOKEN.
+ */
+app.post('/api/generate', async (req, res) => {
   try {
-    const { prompt, reference, strength } = req.body || {};
-    if (!prompt || !reference) {
-      return res.status(400).json({
-        error:
-          "Нужны оба поля: prompt и reference (пример reference: style07.jpg)",
-      });
+    const token   = process.env.REPLICATE_API_TOKEN;
+    const version = process.env.REPLICATE_VERSION;              // длинный UUID
+    const model   = process.env.REPLICATE_MODEL;                // напр. "black-forest-labs/flux-schnell"
+
+    if (!token) {
+      return res.status(500).json({ error: 'REPLICATE_API_TOKEN не задан' });
+    }
+    if (!version && !model) {
+      return res.status(400).json({ error: 'Задай REPLICATE_VERSION (UUID) или REPLICATE_MODEL (slug)' });
     }
 
-    // Публичная ссылка на референс
-    const imageUrl = buildRefUrl(reference, req.get("host"));
+    // что передаём в модель (prompt и прочие опции приходят с фронта)
+    const input = req.body && Object.keys(req.body).length ? req.body : {};
+    let url, payload;
 
-    // маленькая валидация для уверенности
-    if (!/^https?:\/\/.+/i.test(imageUrl)) {
-      return res.status(400).json({
-        error: "Некорректный URL референса",
-        refUrl: imageUrl,
-      });
+    if (version) {
+      // стабильный вариант по UUID версии
+      url = 'https://api.replicate.com/v1/predictions';
+      payload = JSON.stringify({ version, input });
+    } else {
+      // вариант по slug модели
+      url = `https://api.replicate.com/v1/models/${model}/predictions`;
+      payload = JSON.stringify({ input });
     }
 
-    console.log("[GEN] prompt:", prompt);
-    console.log("[GEN] refUrl:", imageUrl);
-
-    // ⚠️ Модель: SDXL image-to-image (принимает image + prompt)
-    // Параметры подбираем базовые: чем больше strength, тем меньше влияние референса.
-    const out = await replicate.run("stability-ai/sdxl", {
-      input: {
-        prompt: prompt,
-        image: imageUrl,     // <-- даём HTTPS-ссылку на твою картинку
-        strength: strength ?? 0.55, // 0..1 (0.35..0.65 обычно норм)
-        // guidance_scale, scheduler и т.п. можно добавить при желании
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json'
       },
+      body: payload
     });
 
-    // SDXL обычно возвращает массив ссылок — берём первую
-    const resultUrl = Array.isArray(out) ? out[0] : out;
-    if (!resultUrl) throw new Error("Модель не вернула ссылку на изображение");
+    const pred = await r.json();
+    if (!r.ok) return res.status(r.status).json(pred);
 
-    res.json({ imageUrl: resultUrl, refUrl: imageUrl });
-  } catch (err) {
-    console.error("[ERROR]", err);
-    res.status(500).json({ error: "Ошибка генерации: " + err.message });
+    // Если не используем webhooks — простой поллинг до готовности
+    let current = pred;
+    while (['starting','processing','queued'].includes(current.status)) {
+      await new Promise(s => setTimeout(s, 1500));
+      const poll = await fetch(`https://api.replicate.com/v1/predictions/${current.id}`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      current = await poll.json();
+      if (!poll.ok) return res.status(poll.status).json(current);
+    }
+
+    if (current.status !== 'succeeded') {
+      return res.status(500).json({ error: 'Generation failed', details: current });
+    }
+
+    // Возвращаем массив URL-ов картинок
+    return res.json({ output: current.output });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Server error', details: String(e) });
   }
 });
 
-// ping
-app.get("/health", (_req, res) => res.send("ok"));
+// SPA-фоллбек (если нужен)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-// порт
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Server started on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server listening on ${PORT}`);
 });
