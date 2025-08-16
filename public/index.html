@@ -1,116 +1,139 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Личный AI-дизайнер</title>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f5f5f5;
+    :root { --primary:#2f7cff; --bg:#f5f5f5; }
+    * { box-sizing:border-box; }
+    body { font-family: Arial, sans-serif; margin:0; background:var(--bg); color:#111; }
+    header { padding:18px 14px; text-align:center; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+    h1 { margin:0 0 8px; font-size:22px; }
+    .wrap { max-width:1040px; margin:18px auto 34px; padding:0 14px; }
+
+    /* форма */
+    .row { display:flex; gap:10px; align-items:center; }
+    @media (max-width:700px){ .row{ flex-direction:column; align-items:stretch; } }
+    #prompt {
+      width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:8px; font-size:16px;
+      background:#fff;
     }
-    h1 {
-      text-align: center;
+    .btn {
+      padding:12px 18px; border:0; border-radius:8px; background:var(--primary); color:#fff;
+      font-weight:600; cursor:pointer;
     }
-    #styles {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
+    .btn:disabled { opacity:.6; cursor:not-allowed; }
+
+    /* сетка стилей */
+    .styles-grid{
+      display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+      gap:14px; margin:16px auto; max-width:980px;
     }
-    #styles button {
-      padding: 10px 15px;
-      border: none;
-      cursor: pointer;
-      background: #ddd;
-      border-radius: 5px;
-      font-weight: bold;
+    .style-btn{
+      border:0; padding:0; background:#fff; border-radius:10px;
+      box-shadow:0 1px 3px rgba(0,0,0,.08); cursor:pointer; overflow:hidden;
+      outline:2px solid transparent; transition:.15s ease;
     }
-    #styles button.active {
-      background: #4cafef;
-      color: white;
-    }
-    #result img {
-      margin-top: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    form {
-      text-align: center;
-    }
-    textarea {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
-    }
-    button[type="submit"] {
-      padding: 10px 20px;
-      background: #4cafef;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-    }
+    .style-btn img{ display:block; width:100%; height:140px; object-fit:cover; }
+    .style-btn span{ display:block; font-size:12px; padding:6px 8px; color:#333; text-align:center; }
+    .style-btn.selected{ outline-color:var(--primary); outline-offset:2px; }
+
+    /* результат */
+    #result { margin-top:22px; text-align:center; }
+    #result img { max-width:100%; border-radius:12px; box-shadow:0 4px 18px rgba(0,0,0,.12); }
+    #hint { font-size:12px; color:#666; margin-top:6px; }
   </style>
 </head>
 <body>
-  <h1>🎨 Личный AI-дизайнер</h1>
+  <header>
+    <h1>🎨 Личный AI-дизайнер</h1>
+    <div style="font-size:13px;color:#555">Введите промпт и выберите референс-стиль</div>
+  </header>
 
-  <div id="styles">
-    <button onclick="selectStyle('luxury')">💎 Рекламная роскошь</button>
-    <button onclick="selectStyle('film90s')">📼 Плёночная ностальгия</button>
-    <button onclick="selectStyle('seamist')">🌊 Морская мистика</button>
-    <button onclick="selectStyle('cinematicportrait')">🎬 Кинодрама</button>
-    <button onclick="selectStyle('neoncity')">🌆 Неоновые города</button>
-  </div>
+  <main class="wrap">
+    <!-- форма -->
+    <div class="row">
+      <input id="prompt" type="text" placeholder="Например: портрет девушки в красном платье у моря, закат, 85mm" />
+      <button class="btn" id="genBtn" onclick="sendPrompt()">Сгенерировать</button>
+    </div>
 
-  <form id="generateForm">
-    <textarea id="prompt" placeholder="Введите, что хотите создать..."></textarea>
-    <br>
-    <button type="submit">Сгенерировать</button>
-  </form>
+    <!-- сетка референсов (19 штук) -->
+    <div id="styles" class="styles-grid">
+      <button class="style-btn" data-ref="style01.jpg"><img src="styles/style01.jpg" alt="style01"><span>Style 01</span></button>
+      <button class="style-btn" data-ref="style02.jpg"><img src="styles/style02.jpg" alt="style02"><span>Style 02</span></button>
+      <button class="style-btn" data-ref="style03.jpg"><img src="styles/style03.jpg" alt="style03"><span>Style 03</span></button>
+      <button class="style-btn" data-ref="style04.jpg"><img src="styles/style04.jpg" alt="style04"><span>Style 04</span></button>
+      <button class="style-btn" data-ref="style05.jpg"><img src="styles/style05.jpg" alt="style05"><span>Style 05</span></button>
+      <button class="style-btn" data-ref="style06.jpg"><img src="styles/style06.jpg" alt="style06"><span>Style 06</span></button>
+      <button class="style-btn" data-ref="style07.jpg"><img src="styles/style07.jpg" alt="style07"><span>Style 07</span></button>
+      <button class="style-btn" data-ref="style08.jpg"><img src="styles/style08.jpg" alt="style08"><span>Style 08</span></button>
+      <button class="style-btn" data-ref="style09.jpg"><img src="styles/style09.jpg" alt="style09"><span>Style 09</span></button>
+      <button class="style-btn" data-ref="style10.jpg"><img src="styles/style10.jpg" alt="style10"><span>Style 10</span></button>
+      <button class="style-btn" data-ref="style11.jpg"><img src="styles/style11.jpg" alt="style11"><span>Style 11</span></button>
+      <button class="style-btn" data-ref="style12.jpg"><img src="styles/style12.jpg" alt="style12"><span>Style 12</span></button>
+      <button class="style-btn" data-ref="style13.jpg"><img src="styles/style13.jpg" alt="style13"><span>Style 13</span></button>
+      <button class="style-btn" data-ref="style14.jpg"><img src="styles/style14.jpg" alt="style14"><span>Style 14</span></button>
+      <button class="style-btn" data-ref="style15.jpg"><img src="styles/style15.jpg" alt="style15"><span>Style 15</span></button>
+      <button class="style-btn" data-ref="style16.jpg"><img src="styles/style16.jpg" alt="style16"><span>Style 16</span></button>
+      <button class="style-btn" data-ref="style17.jpg"><img src="styles/style17.jpg" alt="style17"><span>Style 17</span></button>
+      <button class="style-btn" data-ref="style18.jpg"><img src="styles/style18.jpg" alt="style18"><span>Style 18</span></button>
+      <button class="style-btn" data-ref="style19.jpg"><img src="styles/style19.jpg" alt="style19"><span>Style 19</span></button>
+    </div>
 
-  <div id="result"></div>
+    <!-- место под результат -->
+    <div id="result"></div>
+    <div id="hint"></div>
+  </main>
 
   <script>
-    const styles = {
-      "luxury": "ultra realistic cinematic product photography, luxury jewelry and perfume on glossy surface with dramatic lighting and deep shadows, rich gold and black palette, premium magazine style, depth of field, 8k detail",
-      "film90s": "film photography, soft grain texture, 1990s street fashion, vintage cars, natural candid moments, warm muted tones, shallow depth of field, golden hour light, analog retro aesthetic",
-      "seamist": "cinematic seascape with rocky beach and misty mountains, dramatic clouds, gentle sea breeze, soft sunlight breaking through, emotional atmosphere, high detail, 8k ultra realistic",
-      "cinematicportrait": "emotional cinematic portrait, natural window light, dramatic shadows, storytelling composition, shallow depth of field, muted colors, realistic skin texture, high detail",
-      "neoncity": "neon-lit city street at night, wet asphalt reflecting lights, stylish model in glossy fashion outfit, cinematic composition, cyberpunk mood, sharp focus, high detail"
-    };
-
-    let selectedStyle = "";
-
-    function selectStyle(styleKey) {
-      selectedStyle = styles[styleKey];
-      document.querySelectorAll('#styles button').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
-    }
-
-    document.getElementById('generateForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const prompt = document.getElementById('prompt').value;
-      
-      const res = await fetch('/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, style: selectedStyle })
+    // выбор стиля
+    let selectedRef = null;
+    document.querySelectorAll('.style-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedRef = btn.dataset.ref; // например "style07.jpg"
+        document.getElementById('hint').textContent = 'Выбран стиль: ' + selectedRef;
       });
-      
-      const data = await res.json();
-      
-      if (data.image) {
-        document.getElementById('result').innerHTML = `<img src="${data.image}" style="max-width:100%">`;
-      } else {
-        alert("Ошибка генерации");
-      }
     });
+
+    // отправка на сервер
+    async function sendPrompt(){
+      const promptEl = document.getElementById('prompt');
+      const btn = document.getElementById('genBtn');
+      const box = document.getElementById('result');
+
+      const prompt = (promptEl.value || '').trim();
+      if(!prompt){ alert('Введите промпт.'); promptEl.focus(); return; }
+      if(!selectedRef){ alert('Выберите референс-стиль.'); return; }
+
+      btn.disabled = true; btn.textContent = 'Генерирую…';
+      box.innerHTML = 'Генерация…';
+
+      try{
+        const res = await fetch('/api/generate', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ prompt, reference: selectedRef })
+        });
+        const data = await res.json();
+
+        if(data.imageUrl){
+          box.innerHTML = `<h3>Результат</h3>
+            <img src="${data.imageUrl}" alt="result">`;
+        }else{
+          throw new Error(data.error || 'Не удалось получить изображение');
+        }
+      }catch(e){
+        console.error(e);
+        box.innerHTML = 'Ошибка: ' + e.message;
+        alert('Ошибка: ' + e.message);
+      }finally{
+        btn.disabled = false; btn.textContent = 'Сгенерировать';
+      }
+    }
   </script>
 </body>
 </html>
