@@ -1,59 +1,55 @@
-// server.js — полный файл
-
 import "dotenv/config";
 import express from "express";
 import bodyParser from "body-parser";
 import Replicate from "replicate";
 
 const app = express();
-
-// парсим JSON и отдаём статику из /public (index.html, /styles и т.д.)
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(express.static("public"));
 
-// инициализация Replicate по токену
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 
-// проверка живости
-app.get("/health", (_req, res) => res.send("ok"));
+// Хелпер: собрать публичный URL к референсу и проверить формат
+function buildRefUrl(reference, hostHeader) {
+  const base =
+    (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.trim()) ||
+    (hostHeader ? `https://${hostHeader}` : "");
 
-// основной эндпоинт генерации
+  const url = `${base}/styles/${reference}`.replace(/([^:]\/)\/+/g, "$1");
+  return encodeURI(url);
+}
+
 app.post("/api/generate", async (req, res) => {
   try {
     const { prompt, reference } = req.body || {};
-
     if (!prompt || !reference) {
       return res.status(400).json({
-        error: "Нужны оба поля: prompt и reference (например: style07.jpg)",
+        error:
+          "Нужны оба поля: prompt и reference (например: style07.jpg).",
       });
     }
 
-    // Строим ПУБЛИЧНЫЙ HTTPS-URL к твоему референсу.
-    // Можно задать явно через переменную окружения PUBLIC_BASE_URL
-    // (например https://magic-XXXX.onrender.com),
-    // иначе возьмём хост из запроса.
-    const baseUrl =
-      process.env.PUBLIC_BASE_URL || `https://${req.get("host")}`;
-    const imageUrl = `${baseUrl}/styles/${reference}`;
+    const imageUrl = buildRefUrl(reference, req.get("host"));
 
-    console.log("[GEN]", { prompt, imageUrl });
+    // простая валидация: должно начинаться с http(s)
+    if (!/^https?:\/\/.+/i.test(imageUrl)) {
+      return res
+        .status(400)
+        .json({ error: "Некорректный URL референса", imageUrl });
+    }
 
-    // Вызов модели на Replicate (Flux). При необходимости можно сменить модель.
+    console.log("[GEN] prompt:", prompt);
+    console.log("[GEN] ref URL:", imageUrl);
+
     const output = await replicate.run("black-forest-labs/flux-dev", {
       input: {
         prompt: prompt,
-        image: imageUrl, // <-- даём модели https-ссылку, а не локальный путь
+        image: imageUrl, // важное место: даём HTTPS-URL
       },
     });
 
-    // Replicate обычно возвращает массив ссылок; берём первую
     const resultUrl = Array.isArray(output) ? output[0] : output;
-
-    if (!resultUrl) {
-      throw new Error("Replicate не вернул ссылку на изображение");
-    }
+    if (!resultUrl) throw new Error("Replicate не вернул ссылку на изображение");
 
     res.json({ imageUrl: resultUrl });
   } catch (err) {
@@ -62,8 +58,7 @@ app.post("/api/generate", async (req, res) => {
   }
 });
 
-// порт для Render (даёт через env), локально — 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Server started on http://localhost:${PORT}`);
+  console.log(`✅ Server started on port ${PORT}`);
 });
