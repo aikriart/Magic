@@ -1,5 +1,6 @@
-// server.js — форма + заглушка
+// server.js — форма + OpenAI
 import express from "express";
+import OpenAI from "openai";
 
 const app = express();
 app.use(express.json());
@@ -7,14 +8,14 @@ app.use(express.json());
 // health
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// простая HTML-форма на корне
+// форма на корне (оставляем ту же)
 app.get("/", (_req, res) => {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(
     "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
-    "<title>Тест генерации</title><style>body{font-family:Arial;padding:24px}img{max-width:512px;display:block;margin-top:16px}</style></head><body>" +
-    "<h1>Проверка генерации (без OpenAI)</h1>" +
-    "<form id='f'><input id='p' type='text' size='40' placeholder='Например: a cute cat'><button type='submit'>Сгенерировать</button></form>" +
+    "<title>Генерация (OpenAI)</title><style>body{font-family:Arial;padding:24px}img{max-width:512px;display:block;margin-top:16px}</style></head><body>" +
+    "<h1>Генерация изображения (OpenAI)</h1>" +
+    "<form id='f'><input id='p' type='text' size='40' placeholder='Например: portrait of a woman, cinematic light'><button type='submit'>Сгенерировать</button></form>" +
     "<pre id='log' style='background:#f6f8fa;padding:12px;border-radius:8px;white-space:pre-wrap'></pre><div id='out'></div>" +
     "<script>document.getElementById('f').addEventListener('submit',async function(e){e.preventDefault();var prompt=document.getElementById('p').value;" +
     "var r=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})});" +
@@ -26,12 +27,29 @@ app.get("/", (_req, res) => {
   );
 });
 
-// заглушка генерации
-app.post("/generate", (req, res) => {
-  const prompt = (req.body && req.body.prompt) ? String(req.body.prompt) : "";
-  if (!prompt.trim()) return res.status(400).json({ error: "Пустой prompt" });
-  const url = "https://picsum.photos/1024"; // фейковая картинка
-  res.json({ image: url, output: [url] });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+app.post("/generate", async (req, res) => {
+  try {
+    const prompt = (req.body && req.body.prompt) ? String(req.body.prompt) : "";
+    if (!prompt.trim()) return res.status(400).json({ error: "Пустой prompt" });
+
+    const r = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      size: "1024x1024"
+    });
+
+    const out = (r.data || [])
+      .map(d => d?.url || (d?.b64_json ? "data:image/png;base64," + d.b64_json : null))
+      .filter(Boolean);
+
+    if (!out.length) return res.status(502).json({ error: "OpenAI вернул пустой ответ" });
+    res.json({ image: out[0], output: out });
+  } catch (e) {
+    console.error("[/generate] error:", e);
+    res.status(500).json({ error: e?.message || String(e) });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
