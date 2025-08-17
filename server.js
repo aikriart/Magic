@@ -1,44 +1,38 @@
-const express = require('express');
-const path = require('path');
-const compression = require('compression');
+// ESM-версия сервера (работает при "type":"module")
+import express from 'express';
+import compression from 'compression';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+const app  = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(compression());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-/**
- * /api/generate
- * Работает в двух режимах:
- * 1) Если задан REPLICATE_VERSION  -> POST /v1/predictions { version, input }
- * 2) Если задан REPLICATE_MODEL    -> POST /v1/models/{slug}/predictions { input }
- * Минимально нужен только REPLICATE_API_TOKEN.
- */
+// Поддержка и версии (UUID), и slug
 app.post('/api/generate', async (req, res) => {
   try {
     const token   = process.env.REPLICATE_API_TOKEN;
-    const version = process.env.REPLICATE_VERSION;              // длинный UUID
-    const model   = process.env.REPLICATE_MODEL;                // напр. "black-forest-labs/flux-schnell"
+    const version = process.env.REPLICATE_VERSION;          // UUID
+    const model   = process.env.REPLICATE_MODEL;            // например "black-forest-labs/flux-schnell"
 
-    if (!token) {
-      return res.status(500).json({ error: 'REPLICATE_API_TOKEN не задан' });
-    }
+    if (!token) return res.status(500).json({ error: 'REPLICATE_API_TOKEN не задан' });
     if (!version && !model) {
       return res.status(400).json({ error: 'Задай REPLICATE_VERSION (UUID) или REPLICATE_MODEL (slug)' });
     }
 
-    // что передаём в модель (prompt и прочие опции приходят с фронта)
     const input = req.body && Object.keys(req.body).length ? req.body : {};
     let url, payload;
 
     if (version) {
-      // стабильный вариант по UUID версии
       url = 'https://api.replicate.com/v1/predictions';
       payload = JSON.stringify({ version, input });
     } else {
-      // вариант по slug модели
       url = `https://api.replicate.com/v1/models/${model}/predictions`;
       payload = JSON.stringify({ input });
     }
@@ -51,34 +45,28 @@ app.post('/api/generate', async (req, res) => {
       },
       body: payload
     });
-
-    const pred = await r.json();
+    let pred = await r.json();
     if (!r.ok) return res.status(r.status).json(pred);
 
-    // Если не используем webhooks — простой поллинг до готовности
-    let current = pred;
-    while (['starting','processing','queued'].includes(current.status)) {
+    while (['starting','processing','queued'].includes(pred.status)) {
       await new Promise(s => setTimeout(s, 1500));
-      const poll = await fetch(`https://api.replicate.com/v1/predictions/${current.id}`, {
+      const poll = await fetch(`https://api.replicate.com/v1/predictions/${pred.id}`, {
         headers: { 'Authorization': `Token ${token}` }
       });
-      current = await poll.json();
-      if (!poll.ok) return res.status(poll.status).json(current);
+      pred = await poll.json();
+      if (pred.error) break;
     }
 
-    if (current.status !== 'succeeded') {
-      return res.status(500).json({ error: 'Generation failed', details: current });
+    if (pred.status !== 'succeeded') {
+      return res.status(500).json({ error: 'Generation failed', details: pred });
     }
-
-    // Возвращаем массив URL-ов картинок
-    return res.json({ output: current.output });
+    res.json({ output: pred.output });
   } catch (e) {
-    console.error(e);
     res.status(500).json({ error: 'Server error', details: String(e) });
   }
 });
 
-// SPA-фоллбек (если нужен)
+// SPA fallback (если нужен)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
