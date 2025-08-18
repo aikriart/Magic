@@ -4,17 +4,15 @@ import OpenAI from 'openai';
 const app = express();
 app.use(express.json());
 
-// Проверочные эндпоинты
+// Проверочные точки
 app.get('/health', (_req, res) => res.json({ ok: true }));
-app.get('/debug', (_req, res) => {
-  res.json({
-    ok: true,
-    node: process.version,
-    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-  });
-});
+app.get('/debug', (_req, res) => res.json({
+  ok: true,
+  node: process.version,
+  hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+}));
 
-// Список стилей: название (как на кнопке), модификатор для prompt и путь к заглушке (имя файла с дефисами)
+// Список стилей: название, модификатор для запроса, путь к заглушке (имя файла с дефисами)
 const styles = [
   ['Boho-Sunset',     'boho outfit at golden hour, warm tones',        '/styles/Boho-Sunset.jpg'],
   ['Calm-Interior',   'minimalist decor, serene colors, natural light','/styles/Calm-Interior.jpg'],
@@ -37,19 +35,20 @@ const styles = [
   ['Vintage-Dust',    'vintage dress, warm earthy tones',              '/styles/Vintage-Dust.jpg'],
 ];
 
-// Раздача статических файлов из папки public
+// Раздаём статику из папки public (в том числе /styles/)
 app.use(express.static('./public'));
 
 // Главная страница
 app.get('/', (_req, res) => {
-  // Формируем HTML с кнопками и превью
+  // Собираем кнопки из массива styles
   let chips = '';
   for (const [name, mod, img] of styles) {
     chips += `<button class="chip" data-mod="${mod}" data-img="${img}">${name}</button>`;
   }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.end(`<!doctype html>
-<html><head>
+<html>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Image Generator</title>
@@ -64,7 +63,8 @@ button.primary{padding:10px 14px;border-radius:8px;border:1px solid #3a3cff;back
 pre{background:#0f1020;border:1px solid #262737;border-radius:12px;padding:12px;white-space:pre-wrap;margin-top:12px;}
 img.preview{max-width:100%;display:block;margin-top:12px;border-radius:12px;border:1px solid #262737;}
 </style>
-</head><body>
+</head>
+<body>
 <h1>Image Generation (OpenAI)</h1>
 <div class="row">
   <input id="prompt" type="text" value="Portrait of a woman, cinematic light">
@@ -77,28 +77,27 @@ img.preview{max-width:100%;display:block;margin-top:12px;border-radius:12px;bord
   <img id="preview" class="preview" src="/styles/placeholder.jpg" onerror="this.src='https://via.placeholder.com/512x512.png?text=Preview';">
 </div>
 <script>
-// Добавление модификатора и превью при выборе стиля
-const input = document.getElementById('prompt');
+// При клике на кнопку-стиль добавляем модификатор и показываем превью
+const inputEl = document.getElementById('prompt');
 const preview = document.getElementById('preview');
-document.querySelectorAll('.chip').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
+document.querySelectorAll('.chip').forEach(btn => {
+  btn.addEventListener('click', () => {
     const mod = btn.dataset.mod;
-    let base = input.value.trim();
+    let base = inputEl.value.trim();
     if (!base.toLowerCase().includes(mod.toLowerCase())) {
       if (base && !base.endsWith(',')) base += ',';
       base += ' ' + mod;
     }
-    input.value = base.trim();
+    inputEl.value = base.trim();
     preview.src = btn.dataset.img;
   });
 });
-// Отправка запроса на генерацию
-document.getElementById('generate').addEventListener('click', async ()=>{
-  const prompt = input.value;
+document.getElementById('generate').addEventListener('click', async () => {
+  const prompt = inputEl.value;
   document.getElementById('log').textContent = 'Запрос отправлен...';
   const resp = await fetch('/generate', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt })
   });
   const data = await resp.json();
@@ -110,25 +109,27 @@ document.getElementById('generate').addEventListener('click', async ()=>{
   }
 });
 </script>
-</body></html>`);
+</body>
+</html>`);
 });
 
-// Генерация изображения через OpenAI
+// Генерация через OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post('/generate', async (req, res) => {
   try {
     const prompt = (req.body && req.body.prompt) ? String(req.body.prompt) : '';
-    if (!prompt.trim()) return res.status(400).json({ error:'Empty prompt' });
+    if (!prompt.trim()) return res.status(400).json({ error: 'Empty prompt' });
     const result = await openai.images.generate({
       model: 'gpt-image-1',
       prompt,
       size: '1024x1024',
     });
     const output = (result.data || []).map(d =>
-      d.url ? d.url : d.b64_json ? 'data:image/png;base64,' + d.b64_json : null
+      d.url ? d.url :
+      (d.b64_json ? 'data:image/png;base64,' + d.b64_json : null)
     ).filter(Boolean);
-    if (!output.length) return res.status(502).json({ error:'OpenAI returned empty result' });
+    if (!output.length) return res.status(502).json({ error: 'OpenAI returned empty result' });
     res.json({ image: output[0], output });
   } catch (err) {
     console.error('Generate error:', err);
@@ -136,6 +137,5 @@ app.post('/generate', async (req, res) => {
   }
 });
 
-// Запуск сервера
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server started on port ' + PORT));
