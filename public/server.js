@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 const app = express();
 app.use(express.json());
 
+// Проверочные эндпоинты
 app.get('/health', (_req, res) => res.json({ ok: true }));
 app.get('/debug', (_req, res) => {
   res.json({
@@ -13,34 +14,34 @@ app.get('/debug', (_req, res) => {
   });
 });
 
-// список стилей: название (с дефисами), модификатор, путь к превью
+// ВАЖНО: каждый путь должен совпадать с вашим файлом в public/styles
 const styles = [
   ['Boho-Sunset',     'boho outfit at golden hour, warm tones',        '/styles/Boho-Sunset.jpg'],
-  ['Calm-Interior',    'minimalist decor, serene colors, natural light','/styles/Calm-Interior.jpg'],
-  ['Cherry-Gloss',     'close-up glossy red lips',                      '/styles/Cherry-Gloss.jpg'],
-  ['Christal-Shine',   'sparkling crystal headdress',                   '/styles/Christal-Shine.jpg'],
-  ['Cinematic-Noir',   'high-contrast black-and-white portrait',        '/styles/Cinematic-Noir.jpg'],
-  ['Crystal-Spark',    'sparkling jewelry on dark background',          '/styles/Crystal-Spark.jpg'],
-  ['Dark-Velvet',      'dramatic candlelight, dark velvet attire',      '/styles/Dark-Velvet.jpg'],
-  ['Golden-Fantasy',   'fantasy golden outfit, shimmering light',       '/styles/Golden-Fantasy.jpg'],
-  ['Golden-Sparkle',   'golden dress, glitter explosion',               '/styles/Golden-Sparkle.jpg'],
-  ['Ivory-Light',      'minimal white outfit, soft ivory tones',        '/styles/Ivory-Light.jpg'],
-  ['Midnight-Glam',    'dark lace, sensual glamour',                    '/styles/Midnight-Glam.jpg'],
-  ['Neon-Dreams',      'night city, bright neon lights',                '/styles/Neon-Dreams.jpg'],
-  ['Pastel-Glow',      'freckles, soft light, pastel tones',            '/styles/Pastel-Glow.jpg'],
-  ['Retro-Wave',       '70s vibe, vintage shades, sunglasses fashion',  '/styles/Retro-Wave.jpg'],
-  ['Silver-Glow',      'sparkling silver dress, radiant light',         '/styles/Silver-Glow.jpg'],
-  ['Soft-Bloom',       'soft pastel portrait, dreamy light',            '/styles/Soft-Bloom.jpg'],
-  ['Surrealism',       'fantastical composition, surreal elements',     '/styles/Surrealism.jpg'],
-  ['Urban-Chic',       'city fashion, modern look',                     '/styles/Urban-Chic.jpg'],
-  ['Vintage-Dust',     'vintage dress, warm earthy tones',              '/styles/Vintage-Dust.jpg'],
+  ['Calm-Interior',   'minimalist decor, serene colors, natural light','/styles/Calm-Interior.jpg'],
+  ['Cherry-Gloss',    'close‑up glossy red lips',                      '/styles/Cherry-Gloss.jpg'],
+  ['Christal-Shine',  'sparkling crystal headdress',                   '/styles/Christal-Shine.jpg'],
+  ['Cinematic-Noir',  'high‑contrast black‑and‑white portrait',        '/styles/Cinematic-Noir.jpg'],
+  ['Crystal-Spark',   'sparkling jewelry on dark background',          '/styles/Crystal-Spark.jpg'],
+  ['Dark-Velvet',     'dramatic candlelight, dark velvet attire',      '/styles/Dark-Velvet.jpg'],
+  ['Golden-Fantasy',  'fantasy golden outfit, shimmering light',       '/styles/Golden-Fantasy.jpg'],
+  ['Golden-Sparkle',  'golden dress, glitter explosion',               '/styles/Golden-Sparkle.jpg'],
+  ['Ivory-Light',     'minimal white outfit, soft ivory tones',        '/styles/Ivory-Light.jpg'],
+  ['Midnight-Glam',   'dark lace, sensual glamour',                    '/styles/Midnight-Glam.jpg'],
+  ['Neon-Dreams',     'night city, bright neon lights',                '/styles/Neon-Dreams.jpg'],
+  ['Pastel-Glow',     'freckles, soft light, pastel tones',            '/styles/Pastel-Glow.jpg'],
+  ['Retro-Wave',      '70s vibe, vintage shades, sunglasses fashion',  '/styles/Retro-Wave.jpg'],
+  ['Silver-Glow',     'sparkling silver dress, radiant light',         '/styles/Silver-Glow.jpg'],
+  ['Soft-Bloom',      'soft pastel portrait, dreamy light',            '/styles/Soft-Bloom.jpg'],
+  ['Surrealism',      'fantastical composition, surreal elements',     '/styles/Surrealism.jpg'],
+  ['Urban-Chic',      'city fashion, modern look',                     '/styles/Urban-Chic.jpg'],
+  ['Vintage-Dust',    'vintage dress, warm earthy tones',              '/styles/Vintage-Dust.jpg'],
 ];
 
-// раздаём статику (файлы из public/)
+// Раздаём статические файлы из папки public
 app.use(express.static('./public'));
 
+// Главная страница
 app.get('/', (_req, res) => {
-  // строим кнопки из массива styles
   let chips = '';
   for (const [name, mod, img] of styles) {
     chips += `<button class="chip" data-mod="${mod}" data-img="${img}">${name}</button>`;
@@ -48,7 +49,8 @@ app.get('/', (_req, res) => {
   res.setHeader('Content-Type','text/html; charset=utf-8');
   res.end(`
 <!doctype html>
-<html><head>
+<html>
+<head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Image Generator</title>
@@ -63,7 +65,8 @@ app.get('/', (_req, res) => {
     pre{background:#0f1020;border:1px solid #262737;border-radius:12px;padding:12px;white-space:pre-wrap;margin-top:12px;}
     img.preview{max-width:100%;display:block;margin-top:12px;border-radius:12px;border:1px solid #262737;}
   </style>
-</head><body>
+</head>
+<body>
   <h1>Image Generation (OpenAI)</h1>
   <div class="row">
     <input id="prompt" type="text" value="Portrait of a woman, cinematic light">
@@ -73,8 +76,7 @@ app.get('/', (_req, res) => {
   <div class="chips">${chips}</div>
   <pre id="log"></pre>
   <div id="result">
-    <img id="preview" class="preview" src="/styles/placeholder.jpg"
-         onerror="this.src='https://via.placeholder.com/512x512.png?text=Preview';">
+    <img id="preview" class="preview" src="/styles/placeholder.jpg" onerror="this.src='https://via.placeholder.com/512x512.png?text=Preview';">
   </div>
   <script>
     const input = document.getElementById('prompt');
@@ -83,7 +85,6 @@ app.get('/', (_req, res) => {
       btn.addEventListener('click', () => {
         const mod = btn.dataset.mod;
         let base = input.value.trim();
-        // добавляем модификатор, если его нет
         if (!base.toLowerCase().includes(mod.toLowerCase())) {
           if (base && !base.endsWith(',')) base += ',';
           base += ' ' + mod;
@@ -96,29 +97,28 @@ app.get('/', (_req, res) => {
       const prompt = input.value;
       document.getElementById('log').textContent = 'Запрос отправлен...';
       const resp = await fetch('/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ prompt })
       });
       const data = await resp.json();
-      document.getElementById('log').textContent =
-        'HTTP ' + resp.status + '\\n' + JSON.stringify(data, null, 2);
+      document.getElementById('log').textContent = 'HTTP ' + resp.status + '\\n' + JSON.stringify(data, null, 2);
       if (data.output && data.output.length) {
-        document.getElementById('result').innerHTML =
-          data.output.map(u => '<img class="preview" src="'+u+'">').join('');
+        document.getElementById('result').innerHTML = data.output.map(u => '<img class="preview" src="'+u+'">').join('');
       }
     });
   </script>
-</body></html>`);
+</body>
+</html>`);
 });
 
-// вызываем OpenAI для генерации
+// Обрабатываем генерацию через OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post('/generate', async (req, res) => {
   try {
     const prompt = (req.body && req.body.prompt) ? String(req.body.prompt) : '';
-    if (!prompt.trim()) return res.status(400).json({ error: 'Empty prompt' });
+    if (!prompt.trim()) return res.status(400).json({ error:'Empty prompt' });
     const result = await openai.images.generate({
       model: 'gpt-image-1',
       prompt,
@@ -135,6 +135,5 @@ app.post('/generate', async (req, res) => {
   }
 });
 
-// запуск сервера
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server started on port ' + PORT));
