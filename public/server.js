@@ -4,17 +4,15 @@ import OpenAI from 'openai';
 const app = express();
 app.use(express.json());
 
-// Проверочные эндпоинты
+// Проверочные точки
 app.get('/health', (_req, res) => res.json({ ok: true }));
-app.get('/debug', (_req, res) => {
-  res.json({
-    ok: true,
-    node: process.version,
-    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-  });
-});
+app.get('/debug', (_req, res) => res.json({
+  ok: true,
+  node: process.version,
+  hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+}));
 
-// ВАЖНО: каждый путь должен совпадать с вашим файлом в public/styles
+// Список стилей: название, модификатор для запроса, путь к заглушке (имя файла с дефисами)
 const styles = [
   ['Boho-Sunset',     'boho outfit at golden hour, warm tones',        '/styles/Boho-Sunset.jpg'],
   ['Calm-Interior',   'minimalist decor, serene colors, natural light','/styles/Calm-Interior.jpg'],
@@ -37,96 +35,100 @@ const styles = [
   ['Vintage-Dust',    'vintage dress, warm earthy tones',              '/styles/Vintage-Dust.jpg'],
 ];
 
-// Раздаём статические файлы из папки public
+// Раздаём статику из папки public (в том числе /styles/)
 app.use(express.static('./public'));
 
 // Главная страница
 app.get('/', (_req, res) => {
+  // Собираем кнопки из массива styles
   let chips = '';
   for (const [name, mod, img] of styles) {
     chips += `<button class="chip" data-mod="${mod}" data-img="${img}">${name}</button>`;
   }
-  res.setHeader('Content-Type','text/html; charset=utf-8');
-  res.end(`
-<!doctype html>
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.end(`<!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Image Generator</title>
-  <style>
-    body{font-family:Inter,Arial,sans-serif;padding:24px;max-width:960px;margin:0 auto;background:#0b0b10;color:#eaeaf0;}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-    input{flex:1;min-width:220px;padding:10px;border-radius:8px;border:1px solid #262737;background:#12131a;color:#eaeaf0;}
-    button.primary{padding:10px 14px;border-radius:8px;border:1px solid #3a3cff;background:#3a3cff;color:#fff;cursor:pointer;}
-    .chips{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;}
-    .chip{border:1px solid #262737;background:#151623;color:#cfd2ff;border-radius:999px;padding:8px 12px;cursor:pointer;font-size:14px;}
-    .chip:hover{background:#1a1b28;}
-    pre{background:#0f1020;border:1px solid #262737;border-radius:12px;padding:12px;white-space:pre-wrap;margin-top:12px;}
-    img.preview{max-width:100%;display:block;margin-top:12px;border-radius:12px;border:1px solid #262737;}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Image Generator</title>
+<style>
+body{font-family:Inter,Arial,sans-serif;padding:24px;max-width:960px;margin:0 auto;background:#0b0b10;color:#eaeaf0;}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+input{flex:1;min-width:220px;padding:10px;border-radius:8px;border:1px solid #262737;background:#12131a;color:#eaeaf0;}
+button.primary{padding:10px 14px;border-radius:8px;border:1px solid #3a3cff;background:#3a3cff;color:#fff;cursor:pointer;}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;}
+.chip{border:1px solid #262737;background:#151623;color:#cfd2ff;border-radius:999px;padding:8px 12px;cursor:pointer;font-size:14px;}
+.chip:hover{background:#1a1b28;}
+pre{background:#0f1020;border:1px solid #262737;border-radius:12px;padding:12px;white-space:pre-wrap;margin-top:12px;}
+img.preview{max-width:100%;display:block;margin-top:12px;border-radius:12px;border:1px solid #262737;}
+</style>
 </head>
 <body>
-  <h1>Image Generation (OpenAI)</h1>
-  <div class="row">
-    <input id="prompt" type="text" value="Portrait of a woman, cinematic light">
-    <button id="generate" class="primary">Generate</button>
-  </div>
-  <div style="opacity:.75;font-size:13px;">Click a style to add its modifier to your prompt and preview the image.</div>
-  <div class="chips">${chips}</div>
-  <pre id="log"></pre>
-  <div id="result">
-    <img id="preview" class="preview" src="/styles/placeholder.jpg" onerror="this.src='https://via.placeholder.com/512x512.png?text=Preview';">
-  </div>
-  <script>
-    const input = document.getElementById('prompt');
-    const preview = document.getElementById('preview');
-    document.querySelectorAll('.chip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mod = btn.dataset.mod;
-        let base = input.value.trim();
-        if (!base.toLowerCase().includes(mod.toLowerCase())) {
-          if (base && !base.endsWith(',')) base += ',';
-          base += ' ' + mod;
-        }
-        input.value = base.trim();
-        preview.src = btn.dataset.img;
-      });
-    });
-    document.getElementById('generate').addEventListener('click', async () => {
-      const prompt = input.value;
-      document.getElementById('log').textContent = 'Запрос отправлен...';
-      const resp = await fetch('/generate', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ prompt })
-      });
-      const data = await resp.json();
-      document.getElementById('log').textContent = 'HTTP ' + resp.status + '\\n' + JSON.stringify(data, null, 2);
-      if (data.output && data.output.length) {
-        document.getElementById('result').innerHTML = data.output.map(u => '<img class="preview" src="'+u+'">').join('');
-      }
-    });
-  </script>
+<h1>Image Generation (OpenAI)</h1>
+<div class="row">
+  <input id="prompt" type="text" value="Portrait of a woman, cinematic light">
+  <button id="generate" class="primary">Generate</button>
+</div>
+<div style="opacity:.75;font-size:13px;">Click a style to add its modifier to your prompt and preview the image.</div>
+<div class="chips">${chips}</div>
+<pre id="log"></pre>
+<div id="result">
+  <img id="preview" class="preview" src="/styles/placeholder.jpg" onerror="this.src='https://via.placeholder.com/512x512.png?text=Preview';">
+</div>
+<script>
+// При клике на кнопку-стиль добавляем модификатор и показываем превью
+const inputEl = document.getElementById('prompt');
+const preview = document.getElementById('preview');
+document.querySelectorAll('.chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mod = btn.dataset.mod;
+    let base = inputEl.value.trim();
+    if (!base.toLowerCase().includes(mod.toLowerCase())) {
+      if (base && !base.endsWith(',')) base += ',';
+      base += ' ' + mod;
+    }
+    inputEl.value = base.trim();
+    preview.src = btn.dataset.img;
+  });
+});
+document.getElementById('generate').addEventListener('click', async () => {
+  const prompt = inputEl.value;
+  document.getElementById('log').textContent = 'Запрос отправлен...';
+  const resp = await fetch('/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt })
+  });
+  const data = await resp.json();
+  document.getElementById('log').textContent =
+    'HTTP ' + resp.status + '\\n' + JSON.stringify(data, null, 2);
+  if (data.output && data.output.length) {
+    document.getElementById('result').innerHTML =
+      data.output.map(u => '<img class="preview" src="'+u+'">').join('');
+  }
+});
+</script>
 </body>
 </html>`);
 });
 
-// Обрабатываем генерацию через OpenAI
+// Генерация через OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post('/generate', async (req, res) => {
   try {
     const prompt = (req.body && req.body.prompt) ? String(req.body.prompt) : '';
-    if (!prompt.trim()) return res.status(400).json({ error:'Empty prompt' });
+    if (!prompt.trim()) return res.status(400).json({ error: 'Empty prompt' });
     const result = await openai.images.generate({
       model: 'gpt-image-1',
       prompt,
       size: '1024x1024',
     });
-    const output = (result.data || [])
-      .map(d => d.url || (d.b64_json ? 'data:image/png;base64,' + d.b64_json : null))
-      .filter(Boolean);
+    const output = (result.data || []).map(d =>
+      d.url ? d.url :
+      (d.b64_json ? 'data:image/png;base64,' + d.b64_json : null)
+    ).filter(Boolean);
     if (!output.length) return res.status(502).json({ error: 'OpenAI returned empty result' });
     res.json({ image: output[0], output });
   } catch (err) {
