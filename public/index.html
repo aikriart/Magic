@@ -6,4 +6,43 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>AI Magic</h
+  <h1>AI Magic</h1>
+
+  <div class="controls">
+    <input id="promptInput" type="text" placeholder="Введите описание">
+    <select id="styleSelect">
+      <option value="90s">90s</option>
+      <option value="silver-dream">Silver Dream</option>
+      <option value="fantasy-art">Fantasy Art</option>
+      <option value="japanese-ink">Japanese Ink</option>
+    </select>
+    <select id="sizeSelect">
+      <option value="1024x1024">1:1 (квадрат)</option>
+      <option value="1024x576">16:9 (горизонталь)</option>
+      <option value="576x1024">9:16 (вертикаль)</option>
+    </select>
+    <button onclick="generateImage()">Сгенерировать</button>
+  </div>
+
+  <div id="gallery"></div>
+
+  <script>
+    async function generateImage() {
+      const prompt = document.getElementById("promptInput").value;
+      const style = document.getElementById("styleSelect").value;
+      const size = document.getElementById("sizeSelect").value;
+
+      const response = await fetch("/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, style, size })
+      });
+
+      const data = await response.json();
+      const img = document.createElement("img");
+      img.src = data.url;
+      document.getElementById("gallery").appendChild(img);
+    }
+  </script>
+</body>
+</html>
