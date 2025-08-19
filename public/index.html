@@ -1,76 +1,85 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>AI Magic</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Image Generator</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>AI Magic Generator</h1>
+  <h1>AI Image Generator</h1>
 
-  <div class="form">
-    <input type="text" id="prompt" placeholder="Введите описание изображения...">
-
-    <select id="style">
+  <!-- Форма -->
+  <form class="form" id="generate-form">
+    <input type="text" id="prompt" placeholder="Enter your prompt..." required />
+    
+    <!-- Выбор стиля -->
+    <select id="style" required>
       <option value="90s">90s</option>
-      <option value="silver-dream">Silver Dream</option>
-      <option value="fantasy-art">Fantasy Art</option>
-      <option value="japanese-ink">Japanese Ink</option>
+      <option value="silver">Silver</option>
+      <option value="japanese">Japanese</option>
+      <option value="retro">Retro</option>
+      <option value="fantasy">Fantasy</option>
     </select>
 
-    <select id="size">
+    <!-- Выбор размера -->
+    <select id="size" required>
       <option value="1024x1024">Square (1:1)</option>
-      <option value="1024x1792">Portrait (9:16)</option>
-      <option value="1792x1024">Landscape (16:9)</option>
+      <option value="1280x720">16:9</option>
+      <option value="720x1280">9:16</option>
     </select>
 
-    <button id="generate">Сгенерировать</button>
-  </div>
+    <button type="submit">Generate</button>
+  </form>
 
-  <div id="gallery" class="gallery">
-    <!-- карточки стилей -->
-    <div class="card">
-      <img src="styles/90s.jpg" alt="90s" class="thumb">
-      <p>90s</p>
-    </div>
+  <!-- Галерея -->
+  <div class="gallery" id="gallery"></div>
 
-    <div class="card">
-      <img src="styles/silver-dream.jpg" alt="Silver Dream" class="thumb">
-      <p>Silver Dream</p>
-    </div>
-
-    <div class="card">
-      <img src="styles/fantasy-art.jpg" alt="Fantasy Art" class="thumb">
-      <p>Fantasy Art</p>
-    </div>
-
-    <div class="card">
-      <img src="styles/japanese-ink.jpg" alt="Japanese Ink" class="thumb">
-      <p>Japanese Ink</p>
-    </div>
-  </div>
+  <!-- Лог -->
+  <pre id="output"></pre>
 
   <script>
-    document.getElementById("generate").addEventListener("click", async () => {
+    const form = document.getElementById("generate-form");
+    const gallery = document.getElementById("gallery");
+    const output = document.getElementById("output");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
       const prompt = document.getElementById("prompt").value;
       const style = document.getElementById("style").value;
       const size = document.getElementById("size").value;
 
-      const response = await fetch("/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style, size })
-      });
+      output.textContent = "Generating...";
 
-      const data = await response.json();
-      if (data.imageUrl) {
-        const gallery = document.getElementById("gallery");
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `<img src="${data.imageUrl}" class="thumb"><p>${style}</p>`;
-        gallery.prepend(card);
-      } else {
-        alert("Ошибка генерации изображения");
+      try {
+        const res = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, style, size }),
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          output.textContent = "Error: " + data.error;
+        } else {
+          output.textContent = "Done!";
+          const card = document.createElement("div");
+          card.className = "card";
+
+          const img = document.createElement("img");
+          img.src = data.url;
+          img.alt = prompt;
+          img.className = "thumb";
+
+          const caption = document.createElement("p");
+          caption.textContent = style + " • " + size;
+
+          card.appendChild(img);
+          card.appendChild(caption);
+          gallery.prepend(card);
+        }
+      } catch (err) {
+        output.textContent = "Error: " + err.message;
       }
     });
   </script>
