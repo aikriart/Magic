@@ -6,31 +6,55 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>AI Magic</h1>
+  <h1>AI Magic Generator</h1>
 
-  <div class="controls">
-    <input id="promptInput" type="text" placeholder="Введите описание">
-    <select id="styleSelect">
+  <div class="form">
+    <input type="text" id="prompt" placeholder="Введите описание изображения...">
+
+    <select id="style">
       <option value="90s">90s</option>
       <option value="silver-dream">Silver Dream</option>
       <option value="fantasy-art">Fantasy Art</option>
       <option value="japanese-ink">Japanese Ink</option>
     </select>
-    <select id="sizeSelect">
-      <option value="1024x1024">1:1 (квадрат)</option>
-      <option value="1024x576">16:9 (горизонталь)</option>
-      <option value="576x1024">9:16 (вертикаль)</option>
+
+    <select id="size">
+      <option value="1024x1024">Square (1:1)</option>
+      <option value="1024x1792">Portrait (9:16)</option>
+      <option value="1792x1024">Landscape (16:9)</option>
     </select>
-    <button onclick="generateImage()">Сгенерировать</button>
+
+    <button id="generate">Сгенерировать</button>
   </div>
 
-  <div id="gallery"></div>
+  <div id="gallery" class="gallery">
+    <!-- карточки стилей -->
+    <div class="card">
+      <img src="styles/90s.jpg" alt="90s" class="thumb">
+      <p>90s</p>
+    </div>
+
+    <div class="card">
+      <img src="styles/silver-dream.jpg" alt="Silver Dream" class="thumb">
+      <p>Silver Dream</p>
+    </div>
+
+    <div class="card">
+      <img src="styles/fantasy-art.jpg" alt="Fantasy Art" class="thumb">
+      <p>Fantasy Art</p>
+    </div>
+
+    <div class="card">
+      <img src="styles/japanese-ink.jpg" alt="Japanese Ink" class="thumb">
+      <p>Japanese Ink</p>
+    </div>
+  </div>
 
   <script>
-    async function generateImage() {
-      const prompt = document.getElementById("promptInput").value;
-      const style = document.getElementById("styleSelect").value;
-      const size = document.getElementById("sizeSelect").value;
+    document.getElementById("generate").addEventListener("click", async () => {
+      const prompt = document.getElementById("prompt").value;
+      const style = document.getElementById("style").value;
+      const size = document.getElementById("size").value;
 
       const response = await fetch("/generate", {
         method: "POST",
@@ -39,10 +63,16 @@
       });
 
       const data = await response.json();
-      const img = document.createElement("img");
-      img.src = data.url;
-      document.getElementById("gallery").appendChild(img);
-    }
+      if (data.imageUrl) {
+        const gallery = document.getElementById("gallery");
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<img src="${data.imageUrl}" class="thumb"><p>${style}</p>`;
+        gallery.prepend(card);
+      } else {
+        alert("Ошибка генерации изображения");
+      }
+    });
   </script>
 </body>
 </html>
