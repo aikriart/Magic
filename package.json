@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": {
-    "start": "node server.js"
-  },
   "engines": {
     "node": "20.x"
   },
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
     "openai": "^4.52.0"
   }
 }
