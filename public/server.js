@@ -4,13 +4,17 @@ import OpenAI from 'openai';
 const app = express();
 app.use(express.json());
 
+// Проверочные эндпоинты
 app.get('/health', (_req, res) => res.json({ ok: true }));
-app.get('/debug', (_req, res) => res.json({
-  ok: true,
-  node: process.version,
-  hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-}));
+app.get('/debug', (_req, res) => {
+  res.json({
+    ok: true,
+    node: process.version,
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+  });
+});
 
+// Список стилей: название кнопки, модификатор для prompt, путь к превью (совпадает с именем файла)
 const styles = [
   ['Boho-Sunset',     'boho outfit at golden hour, warm tones',        '/styles/Boho-Sunset.jpg'],
   ['Calm-Interior',   'minimalist decor, serene colors, natural light','/styles/Calm-Interior.jpg'],
@@ -33,15 +37,17 @@ const styles = [
   ['Vintage-Dust',    'vintage dress, warm earthy tones',              '/styles/Vintage-Dust.jpg'],
 ];
 
+// Раздаём статику из public/
 app.use(express.static('./public'));
 
+// Главная страница с динамическим списком стилей и превью
 app.get('/', (_req, res) => {
   let chips = '';
   for (const [name, mod, img] of styles) {
     chips += `<button class="chip" data-mod="${mod}" data-img="${img}">${name}</button>`;
   }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.end(\`<!doctype html>
+  res.end(`<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -95,17 +101,19 @@ app.get('/', (_req, res) => {
         body: JSON.stringify({ prompt })
       });
       const data = await resp.json();
-      document.getElementById('log').textContent = 'HTTP ' + resp.status + '\\n' + JSON.stringify(data, null, 2);
+      document.getElementById('log').textContent =
+        'HTTP ' + resp.status + '\\n' + JSON.stringify(data, null, 2);
       if (data.output && data.output.length) {
         document.getElementById('result').innerHTML =
-          data.output.map(u => '<img class="preview" src="' + u + '">').join('');
+          data.output.map(u => '<img class="preview" src="'+u+'">').join('');
       }
     });
   </script>
 </body>
-</html>\`);
+</html>`);
 });
 
+// Генерация изображения через OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.post('/generate', async (req, res) => {
