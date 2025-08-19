@@ -1,139 +1,200 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Личный AI-дизайнер</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Личный AI‑дизайнер</title>
   <style>
-    :root { --primary:#2f7cff; --bg:#f5f5f5; }
-    * { box-sizing:border-box; }
-    body { font-family: Arial, sans-serif; margin:0; background:var(--bg); color:#111; }
-    header { padding:18px 14px; text-align:center; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.06); }
-    h1 { margin:0 0 8px; font-size:22px; }
-    .wrap { max-width:1040px; margin:18px auto 34px; padding:0 14px; }
-
-    /* форма */
-    .row { display:flex; gap:10px; align-items:center; }
-    @media (max-width:700px){ .row{ flex-direction:column; align-items:stretch; } }
-    #prompt {
-      width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:8px; font-size:16px;
-      background:#fff;
+    body {
+      font-family: Arial, sans-serif;
+      padding: 24px;
+      max-width: 960px;
+      margin: 0 auto;
+      background: #f8f9fa;
+      color: #212529;
     }
-    .btn {
-      padding:12px 18px; border:0; border-radius:8px; background:var(--primary); color:#fff;
-      font-weight:600; cursor:pointer;
+    h1 { font-size: 28px; margin-bottom: 12px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    button.primary {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
     }
-    .btn:disabled { opacity:.6; cursor:not-allowed; }
-
-    /* сетка стилей */
-    .styles-grid{
-      display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
-      gap:14px; margin:16px auto; max-width:980px;
+    button.primary:hover { background: #0056b3; }
+    .styles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
     }
-    .style-btn{
-      border:0; padding:0; background:#fff; border-radius:10px;
-      box-shadow:0 1px 3px rgba(0,0,0,.08); cursor:pointer; overflow:hidden;
-      outline:2px solid transparent; transition:.15s ease;
+    .style-card {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      padding: 6px;
+      background: #fff;
     }
-    .style-btn img{ display:block; width:100%; height:140px; object-fit:cover; }
-    .style-btn span{ display:block; font-size:12px; padding:6px 8px; color:#333; text-align:center; }
-    .style-btn.selected{ outline-color:var(--primary); outline-offset:2px; }
-
-    /* результат */
-    #result { margin-top:22px; text-align:center; }
-    #result img { max-width:100%; border-radius:12px; box-shadow:0 4px 18px rgba(0,0,0,.12); }
-    #hint { font-size:12px; color:#666; margin-top:6px; }
+    .style-card.selected {
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0,123,255,.25);
+    }
+    .style-card img {
+      width: 100%;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .style-name {
+      margin-top: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #343a40;
+    }
+    pre {
+      background: #f1f3f5;
+      padding: 12px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+    }
+    img.preview { max-width: 100%; margin-top: 12px; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>🎨 Личный AI-дизайнер</h1>
-    <div style="font-size:13px;color:#555">Введите промпт и выберите референс-стиль</div>
-  </header>
 
-  <main class="wrap">
-    <!-- форма -->
-    <div class="row">
-      <input id="prompt" type="text" placeholder="Например: портрет девушки в красном платье у моря, закат, 85mm" />
-      <button class="btn" id="genBtn" onclick="sendPrompt()">Сгенерировать</button>
+  <h1>Личный AI‑дизайнер</h1>
+  <div class="row">
+    <input id="prompt" placeholder="Введите описание изображения...">
+    <button id="generate" class="primary">Сгенерировать</button>
+  </div>
+  <p>Выберите референс‑стиль:</p>
+  <div class="styles-grid" id="stylesGrid">
+    <!-- карточки стилей -->
+    <div class="style-card" data-mod="boho outfit at golden hour, warm tones" data-img="/styles/Boho-Sunset.jpg">
+      <img src="/styles/Boho-Sunset.jpg" alt="Boho Sunset">
+      <div class="style-name">Boho Sunset</div>
     </div>
-
-    <!-- сетка референсов (19 штук) -->
-    <div id="styles" class="styles-grid">
-      <button class="style-btn" data-ref="style01.jpg"><img src="styles/style01.jpg" alt="style01"><span>Style 01</span></button>
-      <button class="style-btn" data-ref="style02.jpg"><img src="styles/style02.jpg" alt="style02"><span>Style 02</span></button>
-      <button class="style-btn" data-ref="style03.jpg"><img src="styles/style03.jpg" alt="style03"><span>Style 03</span></button>
-      <button class="style-btn" data-ref="style04.jpg"><img src="styles/style04.jpg" alt="style04"><span>Style 04</span></button>
-      <button class="style-btn" data-ref="style05.jpg"><img src="styles/style05.jpg" alt="style05"><span>Style 05</span></button>
-      <button class="style-btn" data-ref="style06.jpg"><img src="styles/style06.jpg" alt="style06"><span>Style 06</span></button>
-      <button class="style-btn" data-ref="style07.jpg"><img src="styles/style07.jpg" alt="style07"><span>Style 07</span></button>
-      <button class="style-btn" data-ref="style08.jpg"><img src="styles/style08.jpg" alt="style08"><span>Style 08</span></button>
-      <button class="style-btn" data-ref="style09.jpg"><img src="styles/style09.jpg" alt="style09"><span>Style 09</span></button>
-      <button class="style-btn" data-ref="style10.jpg"><img src="styles/style10.jpg" alt="style10"><span>Style 10</span></button>
-      <button class="style-btn" data-ref="style11.jpg"><img src="styles/style11.jpg" alt="style11"><span>Style 11</span></button>
-      <button class="style-btn" data-ref="style12.jpg"><img src="styles/style12.jpg" alt="style12"><span>Style 12</span></button>
-      <button class="style-btn" data-ref="style13.jpg"><img src="styles/style13.jpg" alt="style13"><span>Style 13</span></button>
-      <button class="style-btn" data-ref="style14.jpg"><img src="styles/style14.jpg" alt="style14"><span>Style 14</span></button>
-      <button class="style-btn" data-ref="style15.jpg"><img src="styles/style15.jpg" alt="style15"><span>Style 15</span></button>
-      <button class="style-btn" data-ref="style16.jpg"><img src="styles/style16.jpg" alt="style16"><span>Style 16</span></button>
-      <button class="style-btn" data-ref="style17.jpg"><img src="styles/style17.jpg" alt="style17"><span>Style 17</span></button>
-      <button class="style-btn" data-ref="style18.jpg"><img src="styles/style18.jpg" alt="style18"><span>Style 18</span></button>
-      <button class="style-btn" data-ref="style19.jpg"><img src="styles/style19.jpg" alt="style19"><span>Style 19</span></button>
+    <div class="style-card" data-mod="minimalist decor, serene colors, natural light" data-img="/styles/Calm-Interior.jpg">
+      <img src="/styles/Calm-Interior.jpg" alt="Calm Interior">
+      <div class="style-name">Calm Interior</div>
     </div>
+    <div class="style-card" data-mod="close-up glossy red lips" data-img="/styles/Cherry-Gloss.jpg">
+      <img src="/styles/Cherry-Gloss.jpg" alt="Cherry Gloss">
+      <div class="style-name">Cherry Gloss</div>
+    </div>
+    <div class="style-card" data-mod="sparkling crystal headdress" data-img="/styles/Christal-Shine.jpg">
+      <img src="/styles/Christal-Shine.jpg" alt="Christal Shine">
+      <div class="style-name">Christal Shine</div>
+    </div>
+    <div class="style-card" data-mod="high-contrast black-and-white portrait" data-img="/styles/Cinematic-Noir.jpg">
+      <img src="/styles/Cinematic-Noir.jpg" alt="Cinematic Noir">
+      <div class="style-name">Cinematic Noir</div>
+    </div>
+    <div class="style-card" data-mod="sparkling jewelry on dark background" data-img="/styles/Crystal-Spark.jpg">
+      <img src="/styles/Crystal-Spark.jpg" alt="Crystal Spark">
+      <div class="style-name">Crystal Spark</div>
+    </div>
+    <div class="style-card" data-mod="dramatic candlelight, dark velvet attire" data-img="/styles/Dark-Velvet.jpg">
+      <img src="/styles/Dark-Velvet.jpg" alt="Dark Velvet">
+      <div class="style-name">Dark Velvet</div>
+    </div>
+    <div class="style-card" data-mod="fantasy golden outfit, shimmering light" data-img="/styles/Golden-Fantasy.jpg">
+      <img src="/styles/Golden-Fantasy.jpg" alt="Golden Fantasy">
+      <div class="style-name">Golden Fantasy</div>
+    </div>
+    <div class="style-card" data-mod="golden dress, glitter explosion" data-img="/styles/Golden-Sparkle.jpg">
+      <img src="/styles/Golden-Sparkle.jpg" alt="Golden Sparkle">
+      <div class="style-name">Golden Sparkle</div>
+    </div>
+    <div class="style-card" data-mod="minimal white outfit, soft ivory tones" data-img="/styles/Ivory-Light.jpg">
+      <img src="/styles/Ivory-Light.jpg" alt="Ivory Light">
+      <div class="style-name">Ivory Light</div>
+    </div>
+    <div class="style-card" data-mod="dark lace, sensual glamour" data-img="/styles/Midnight-Glam.jpg">
+      <img src="/styles/Midnight-Glam.jpg" alt="Midnight Glam">
+      <div class="style-name">Midnight Glam</div>
+    </div>
+    <div class="style-card" data-mod="night city, bright neon lights" data-img="/styles/Neon-Dreams.jpg">
+      <img src="/styles/Neon-Dreams.jpg" alt="Neon Dreams">
+      <div class="style-name">Neon Dreams</div>
+    </div>
+    <div class="style-card" data-mod="freckles, soft light, pastel tones" data-img="/styles/Pastel-Glow.jpg">
+      <img src="/styles/Pastel-Glow.jpg" alt="Pastel Glow">
+      <div class="style-name">Pastel Glow</div>
+    </div>
+    <div class="style-card" data-mod="70s vibe, vintage shades, sunglasses fashion" data-img="/styles/Retro-Wave.jpg">
+      <img src="/styles/Retro-Wave.jpg" alt="Retro Wave">
+      <div class="style-name">Retro Wave</div>
+    </div>
+    <div class="style-card" data-mod="sparkling silver dress, radiant light" data-img="/styles/Silver-Glow.jpg">
+      <img src="/styles/Silver-Glow.jpg" alt="Silver Glow">
+      <div class="style-name">Silver Glow</div>
+    </div>
+    <div class="style-card" data-mod="soft pastel portrait, dreamy light" data-img="/styles/Soft-Bloom.jpg">
+      <img src="/styles/Soft-Bloom.jpg" alt="Soft Bloom">
+      <div class="style-name">Soft Bloom</div>
+    </div>
+    <div class="style-card" data-mod="fantastical composition, surreal elements" data-img="/styles/Surrealism.jpg">
+      <img src="/styles/Surrealism.jpg" alt="Surrealism">
+      <div class="style-name">Surrealism</div>
+    </div>
+    <div class="style-card" data-mod="city fashion, modern look" data-img="/styles/Urban-Chic.jpg">
+      <img src="/styles/Urban-Chic.jpg" alt="Urban Chic">
+      <div class="style-name">Urban Chic</div>
+    </div>
+    <div class="style-card" data-mod="vintage dress, warm earthy tones" data-img="/styles/Vintage-Dust.jpg">
+      <img src="/styles/Vintage-Dust.jpg" alt="Vintage Dust">
+      <div class="style-name">Vintage Dust</div>
+    </div>
+  </div>
 
-    <!-- место под результат -->
-    <div id="result"></div>
-    <div id="hint"></div>
-  </main>
+  <pre id="log"></pre>
+  <div id="generated"></div>
 
   <script>
-    // выбор стиля
-    let selectedRef = null;
-    document.querySelectorAll('.style-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        document.querySelectorAll('.style-btn').forEach(b=>b.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedRef = btn.dataset.ref; // например "style07.jpg"
-        document.getElementById('hint').textContent = 'Выбран стиль: ' + selectedRef;
+    // Выбор стиля: подсветка и сохранение модификатора
+    let selectedMod = '';
+    document.querySelectorAll('.style-card').forEach(card => {
+      card.addEventListener('click', () => {
+        // снять выделение со всех карточек
+        document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
+        // выделить текущую
+        card.classList.add('selected');
+        selectedMod = card.dataset.mod;
+        // показать превью
+        document.getElementById('preview').src = card.dataset.img;
       });
     });
 
-    // отправка на сервер
-    async function sendPrompt(){
-      const promptEl = document.getElementById('prompt');
-      const btn = document.getElementById('genBtn');
-      const box = document.getElementById('result');
-
-      const prompt = (promptEl.value || '').trim();
-      if(!prompt){ alert('Введите промпт.'); promptEl.focus(); return; }
-      if(!selectedRef){ alert('Выберите референс-стиль.'); return; }
-
-      btn.disabled = true; btn.textContent = 'Генерирую…';
-      box.innerHTML = 'Генерация…';
-
-      try{
-        const res = await fetch('/api/generate', {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ prompt, reference: selectedRef })
+    document.getElementById('generate').addEventListener('click', async () => {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) {
+        alert('Введите описание изображения.');
+        return;
+      }
+      // добавляем модификатор, если выбран стиль
+      const fullPrompt = selectedMod ? `${prompt}, ${selectedMod}` : prompt;
+      document.getElementById('log').textContent = 'Запрос отправлен…';
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: fullPrompt })
         });
         const data = await res.json();
-
-        if(data.imageUrl){
-          box.innerHTML = `<h3>Результат</h3>
-            <img src="${data.imageUrl}" alt="result">`;
-        }else{
-          throw new Error(data.error || 'Не удалось получить изображение');
+        document.getElementById('log').textContent = 'HTTP ' + res.status + '\\n' + JSON.stringify(data, null, 2);
+        if (data.output && data.output.length) {
+          document.getElementById('generated').innerHTML =
+            data.output.map(url => '<img class="preview" src="' + url + '">').join('');
         }
-      }catch(e){
-        console.error(e);
-        box.innerHTML = 'Ошибка: ' + e.message;
-        alert('Ошибка: ' + e.message);
-      }finally{
-        btn.disabled = false; btn.textContent = 'Сгенерировать';
+      } catch (err) {
+        document.getElementById('log').textContent = 'Ошибка: ' + err.message;
       }
-    }
+    });
   </script>
+
 </body>
 </html>
