@@ -16,6 +16,7 @@
     h1 { font-size: 28px; margin-bottom: 12px; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
     button.primary {
       padding: 10px 14px;
       border: none;
@@ -42,12 +43,12 @@
       border-color: #007bff;
       box-shadow: 0 0 0 2px rgba(0,123,255,.25);
     }
-   /* миниатюры: квадрат 1:1 и обрезка по центру */
+    /* Миниатюры — квадрат 1:1, обрезка по центру */
     .style-card img {
-    width: 100%;
-    aspect-ratio: 1 / 1;  /* заставляем изображение быть квадратным */
-    object-fit: cover;    /* чтобы картинка не искажалась, а обрезалась по центру */
-    border-radius: 4px;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 4px;
     }
     .style-name {
       margin-top: 6px;
@@ -68,93 +69,93 @@
 
   <h1>Личный AI‑дизайнер</h1>
   <div class="row">
-  <input id="prompt" placeholder="Введите описание изображения...">
-  <!-- Выбор соотношения сторон -->
-  <select id="sizeSelect" class="primary">
-    <option value="1024x1024">1:1 (квадрат)</option>
-    <option value="1024x1792">9:16 (портрет)</option>
-    <option value="1792x1024">16:9 (альбом)</option>
-  </select>
-  <button id="generate" class="primary">Сгенерировать</button>
-</div>
+    <input id="prompt" placeholder="Введите описание изображения..." />
+    <!-- Здесь пользователь выбирает формат картинки -->
+    <select id="sizeSelect">
+      <option value="1024x1024">1:1 (квадрат)</option>
+      <option value="1024x1792">9:16 (портрет)</option>
+      <option value="1792x1024">16:9 (альбом)</option>
+    </select>
+    <button id="generate" class="primary">Сгенерировать</button>
+  </div>
   <p>Выберите референс‑стиль:</p>
   <div class="styles-grid" id="stylesGrid">
-    <!-- карточки стилей -->
+    <!-- Каждая карточка: название, модификатор, превью -->
     <div class="style-card" data-mod="boho outfit at golden hour, warm tones" data-img="/styles/Boho-Sunset.jpg">
-      <img src="/styles/Boho-Sunset.jpg" alt="Boho Sunset">
-      <div class="style-name">Boho Sunset</div>
+      <img src="/styles/Boho-Sunset.jpg" alt="Boho Sunset" />
+      <div class="style-name">Boho‑Sunset</div>
     </div>
     <div class="style-card" data-mod="minimalist decor, serene colors, natural light" data-img="/styles/Calm-Interior.jpg">
-      <img src="/styles/Calm-Interior.jpg" alt="Calm Interior">
-      <div class="style-name">Calm Interior</div>
+      <img src="/styles/Calm-Interior.jpg" alt="Calm Interior" />
+      <div class="style-name">Calm‑Interior</div>
     </div>
     <div class="style-card" data-mod="close-up glossy red lips" data-img="/styles/Cherry-Gloss.jpg">
-      <img src="/styles/Cherry-Gloss.jpg" alt="Cherry Gloss">
-      <div class="style-name">Cherry Gloss</div>
+      <img src="/styles/Cherry-Gloss.jpg" alt="Cherry Gloss" />
+      <div class="style-name">Cherry‑Gloss</div>
     </div>
     <div class="style-card" data-mod="sparkling crystal headdress" data-img="/styles/Christal-Shine.jpg">
-      <img src="/styles/Christal-Shine.jpg" alt="Christal Shine">
-      <div class="style-name">Christal Shine</div>
+      <img src="/styles/Christal-Shine.jpg" alt="Christal Shine" />
+      <div class="style-name">Christal‑Shine</div>
     </div>
     <div class="style-card" data-mod="high-contrast black-and-white portrait" data-img="/styles/Cinematic-Noir.jpg">
-      <img src="/styles/Cinematic-Noir.jpg" alt="Cinematic Noir">
-      <div class="style-name">Cinematic Noir</div>
+      <img src="/styles/Cinematic-Noir.jpg" alt="Cinematic Noir" />
+      <div class="style-name">Cinematic‑Noir</div>
     </div>
     <div class="style-card" data-mod="sparkling jewelry on dark background" data-img="/styles/Crystal-Spark.jpg">
-      <img src="/styles/Crystal-Spark.jpg" alt="Crystal Spark">
-      <div class="style-name">Crystal Spark</div>
+      <img src="/styles/Crystal-Spark.jpg" alt="Crystal Spark" />
+      <div class="style-name">Crystal‑Spark</div>
     </div>
     <div class="style-card" data-mod="dramatic candlelight, dark velvet attire" data-img="/styles/Dark-Velvet.jpg">
-      <img src="/styles/Dark-Velvet.jpg" alt="Dark Velvet">
-      <div class="style-name">Dark Velvet</div>
+      <img src="/styles/Dark-Velvet.jpg" alt="Dark Velvet" />
+      <div class="style-name">Dark‑Velvet</div>
     </div>
     <div class="style-card" data-mod="fantasy golden outfit, shimmering light" data-img="/styles/Golden-Fantasy.jpg">
-      <img src="/styles/Golden-Fantasy.jpg" alt="Golden Fantasy">
-      <div class="style-name">Golden Fantasy</div>
+      <img src="/styles/Golden-Fantasy.jpg" alt="Golden Fantasy" />
+      <div class="style-name">Golden‑Fantasy</div>
     </div>
     <div class="style-card" data-mod="golden dress, glitter explosion" data-img="/styles/Golden-Sparkle.jpg">
-      <img src="/styles/Golden-Sparkle.jpg" alt="Golden Sparkle">
-      <div class="style-name">Golden Sparkle</div>
+      <img src="/styles/Golden-Sparkle.jpg" alt="Golden Sparkle" />
+      <div class="style-name">Golden‑Sparkle</div>
     </div>
     <div class="style-card" data-mod="minimal white outfit, soft ivory tones" data-img="/styles/Ivory-Light.jpg">
-      <img src="/styles/Ivory-Light.jpg" alt="Ivory Light">
-      <div class="style-name">Ivory Light</div>
+      <img src="/styles/Ivory-Light.jpg" alt="Ivory Light" />
+      <div class="style-name">Ivory‑Light</div>
     </div>
     <div class="style-card" data-mod="dark lace, sensual glamour" data-img="/styles/Midnight-Glam.jpg">
-      <img src="/styles/Midnight-Glam.jpg" alt="Midnight Glam">
-      <div class="style-name">Midnight Glam</div>
+      <img src="/styles/Midnight-Glam.jpg" alt="Midnight Glam" />
+      <div class="style-name">Midnight‑Glam</div>
     </div>
     <div class="style-card" data-mod="night city, bright neon lights" data-img="/styles/Neon-Dreams.jpg">
-      <img src="/styles/Neon-Dreams.jpg" alt="Neon Dreams">
-      <div class="style-name">Neon Dreams</div>
+      <img src="/styles/Neon-Dreams.jpg" alt="Neon Dreams" />
+      <div class="style-name">Neon‑Dreams</div>
     </div>
     <div class="style-card" data-mod="freckles, soft light, pastel tones" data-img="/styles/Pastel-Glow.jpg">
-      <img src="/styles/Pastel-Glow.jpg" alt="Pastel Glow">
-      <div class="style-name">Pastel Glow</div>
+      <img src="/styles/Pastel-Glow.jpg" alt="Pastel Glow" />
+      <div class="style-name">Pastel‑Glow</div>
     </div>
     <div class="style-card" data-mod="70s vibe, vintage shades, sunglasses fashion" data-img="/styles/Retro-Wave.jpg">
-      <img src="/styles/Retro-Wave.jpg" alt="Retro Wave">
-      <div class="style-name">Retro Wave</div>
+      <img src="/styles/Retro-Wave.jpg" alt="Retro Wave" />
+      <div class="style-name">Retro‑Wave</div>
     </div>
     <div class="style-card" data-mod="sparkling silver dress, radiant light" data-img="/styles/Silver-Glow.jpg">
-      <img src="/styles/Silver-Glow.jpg" alt="Silver Glow">
-      <div class="style-name">Silver Glow</div>
+      <img src="/styles/Silver-Glow.jpg" alt="Silver Glow" />
+      <div class="style-name">Silver‑Glow</div>
     </div>
     <div class="style-card" data-mod="soft pastel portrait, dreamy light" data-img="/styles/Soft-Bloom.jpg">
-      <img src="/styles/Soft-Bloom.jpg" alt="Soft Bloom">
-      <div class="style-name">Soft Bloom</div>
+      <img src="/styles/Soft-Bloom.jpg" alt="Soft Bloom" />
+      <div class="style-name">Soft‑Bloom</div>
     </div>
     <div class="style-card" data-mod="fantastical composition, surreal elements" data-img="/styles/Surrealism.jpg">
-      <img src="/styles/Surrealism.jpg" alt="Surrealism">
+      <img src="/styles/Surrealism.jpg" alt="Surrealism" />
       <div class="style-name">Surrealism</div>
     </div>
     <div class="style-card" data-mod="city fashion, modern look" data-img="/styles/Urban-Chic.jpg">
-      <img src="/styles/Urban-Chic.jpg" alt="Urban Chic">
-      <div class="style-name">Urban Chic</div>
+      <img src="/styles/Urban-Chic.jpg" alt="Urban Chic" />
+      <div class="style-name">Urban‑Chic</div>
     </div>
     <div class="style-card" data-mod="vintage dress, warm earthy tones" data-img="/styles/Vintage-Dust.jpg">
-      <img src="/styles/Vintage-Dust.jpg" alt="Vintage Dust">
-      <div class="style-name">Vintage Dust</div>
+      <img src="/styles/Vintage-Dust.jpg" alt="Vintage Dust" />
+      <div class="style-name">Vintage‑Dust</div>
     </div>
   </div>
 
@@ -162,37 +163,39 @@
   <div id="generated"></div>
 
   <script>
-    // Выбор стиля: подсветка и сохранение модификатора
+    // Выбранный модификатор для prompt
     let selectedMod = '';
+    // Подсветка выбранной карточки и сохранение модификатора
     document.querySelectorAll('.style-card').forEach(card => {
       card.addEventListener('click', () => {
-        // снять выделение со всех карточек
         document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
-        // выделить текущую
         card.classList.add('selected');
         selectedMod = card.dataset.mod;
-        // показать превью
+        // Показ превью выбранного стиля
         document.getElementById('preview').src = card.dataset.img;
       });
     });
 
+    // Отправка запроса на генерацию
     document.getElementById('generate').addEventListener('click', async () => {
-      const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) {
+      const userPrompt = document.getElementById('prompt').value.trim();
+      // добавляем выбранный стиль в prompt, если есть
+      const sizeValue  = document.getElementById('sizeSelect').value;
+      const fullPrompt = selectedMod ? \`\${userPrompt}, \${selectedMod}\` : userPrompt;
+      if (!userPrompt) {
         alert('Введите описание изображения.');
         return;
       }
-      // добавляем модификатор, если выбран стиль
-      const fullPrompt = selectedMod ? `${prompt}, ${selectedMod}` : prompt;
-      document.getElementById('log').textContent = 'Запрос отправлен…';
+      document.getElementById('log').textContent = 'Отправляю запрос…';
       try {
-        const res = await fetch('/generate', {
+        const response = await fetch('/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: fullPrompt })
+          body: JSON.stringify({ prompt: fullPrompt, size: sizeValue })
         });
-        const data = await res.json();
-        document.getElementById('log').textContent = 'HTTP ' + res.status + '\\n' + JSON.stringify(data, null, 2);
+        const data = await response.json();
+        document.getElementById('log').textContent =
+          'HTTP ' + response.status + '\\n' + JSON.stringify(data, null, 2);
         if (data.output && data.output.length) {
           document.getElementById('generated').innerHTML =
             data.output.map(url => '<img class="preview" src="' + url + '">').join('');
