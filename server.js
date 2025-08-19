@@ -1,39 +1,50 @@
-import express from "express";
+ import express from "express";
+import cors from "cors";
 import bodyParser from "body-parser";
-import fetch from "node-fetch";
-import dotenv from "dotenv";
-
-dotenv.config();
+import OpenAI from "openai";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
+app.use(cors());
 app.use(bodyParser.json());
+
+// 👇 Раздаём статику из /public
 app.use(express.static("public"));
 
-app.post("/generate", async (req, res) => {
-  const { prompt, style, size } = req.body;
+// 👇 Инициализация OpenAI (ключ берётся из переменной окружения)
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
+// Генерация картинки
+app.post("/generate", async (req, res) => {
   try {
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt: `${prompt}, style: ${style}`,
-        size: size || "1024x1024"
-      }),
+    const { prompt, size } = req.body; // size: "1024x1024" | "1024x1792" | "1792x1024"
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
+
+    const result = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      size: size || "1024x1024",
+      // можно добавить background: "transparent" при необходимости
     });
 
-    const data = await response.json();
-    res.json({ url: data.data[0].url });
-  } catch (error) {
-    console.error("Ошибка генерации:", error);
-    res.status(500).json({ error: "Не удалось сгенерировать изображение" });
+    const b64 = result.data[0].b64_json;
+    const dataUrl = `data:image/png;base64,${b64}`;
+
+    return res.json({
+      image: dataUrl,
+      output: [dataUrl]
+    });
+  } catch (err) {
+    console.error("Generation error:", err);
+    return res.status(500).json({ error: err?.message || "Generation failed" });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// Запуск сервера
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
+});
