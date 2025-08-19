@@ -42,11 +42,12 @@
       border-color: #007bff;
       box-shadow: 0 0 0 2px rgba(0,123,255,.25);
     }
+   /* миниатюры: квадрат 1:1 и обрезка по центру */
     .style-card img {
-      width: 100%;
-      height: auto;
-      object-fit: cover;
-      border-radius: 4px;
+    width: 100%;
+    aspect-ratio: 1 / 1;  /* заставляем изображение быть квадратным */
+    object-fit: cover;    /* чтобы картинка не искажалась, а обрезалась по центру */
+    border-radius: 4px;
     }
     .style-name {
       margin-top: 6px;
@@ -67,9 +68,15 @@
 
   <h1>Личный AI‑дизайнер</h1>
   <div class="row">
-    <input id="prompt" placeholder="Введите описание изображения...">
-    <button id="generate" class="primary">Сгенерировать</button>
-  </div>
+  <input id="prompt" placeholder="Введите описание изображения...">
+  <!-- Выбор соотношения сторон -->
+  <select id="sizeSelect" class="primary">
+    <option value="1024x1024">1:1 (квадрат)</option>
+    <option value="1024x1792">9:16 (портрет)</option>
+    <option value="1792x1024">16:9 (альбом)</option>
+  </select>
+  <button id="generate" class="primary">Сгенерировать</button>
+</div>
   <p>Выберите референс‑стиль:</p>
   <div class="styles-grid" id="stylesGrid">
     <!-- карточки стилей -->
