@@ -1,136 +1,114 @@
+/* ========== БАЗА ========== */
 * { box-sizing: border-box; }
-
+html, body { margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  margin: 0;
-  color: #1f2937;
-  background: #f7f8fa;
-}
-
-h1 {
-  font-size: 32px;
-  margin: 8px 0 16px;
-  text-align: center;
-}
-
-.container {
-  max-width: 980px;
-  padding: 20px 16px 48px;
-  margin: 0 auto;
-}
-
-.row {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 1fr 220px 200px 160px;
-  align-items: center;
-  margin-bottom: 16px;
-}
-@media (max-width: 900px) {
-  .row { grid-template-columns: 1fr; }
-}
-
-input, select, button {
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  font-size: 15px;
-}
-
-input::placeholder { color: #9aa4b2; }
-
-.select { background: #fff; }
-
-button.primary {
-  background: #3b82f6;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-button.primary:disabled {
-  opacity: .6; cursor: default;
-}
-
-/* Сетка карточек */
-.styles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.style-card {
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: 8px;
-  padding: 10px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  cursor: pointer;
-  text-align: center;
-  transition: .15s ease border, .15s ease box-shadow, .15s ease transform;
-}
-.style-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 1px 4px rgba(0,0,0,.04);
-}
-.style-card.selected {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59,130,246,.2);
-}
-
-/* Квадратное превью */
-.thumb {
-  width: 100%;
-  aspect-ratio: 1 / 1;   /* квадрат */
-  border-radius: 8px;
-  overflow: hidden;
-  background: #eef2f7;
-}
-.thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;     /* обрезаем по квадрату */
-  display: block;
-}
-
-.style-title {
-  font-size: 14px;
+  font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  background: #f6f8fb;
   color: #111827;
 }
 
-/* Лог и результат */
-.log {
-  background: #0f172a;
-  color: #d1d5db;
-  padding: 12px;
-  border-radius: 10px;
-  overflow: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
-  margin-top: 16px;
+/* Контейнер */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
-.result {
+/* Заголовок и панель управления */
+h1 { font-size: 28px; margin: 8px 0 16px; }
+.controls { display: grid; gap: 8px; grid-template-columns: 1fr 200px 200px; }
+@media (max-width: 700px) {
+  .controls { grid-template-columns: 1fr; }
+}
+input, select, button {
+  width: 100%;
+  height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 16px;
+}
+button.primary {
+  background: #3761ff;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.primary:disabled { opacity: .6; cursor: default; }
+
+/* ========== СЕТКА СТИЛЕЙ ========== */
+.styles-grid {
   margin-top: 16px;
   display: grid;
-  justify-items: center;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
 }
-.result.hidden { display: none; }
-
-#resultImg {
-  width: min(100%, 860px);
+.style-card {
+  position: relative;
   border-radius: 12px;
+  overflow: hidden;
   background: #e5e7eb;
+  border: 2px solid transparent;
+  transition: transform .08s ease, border-color .08s ease;
+  cursor: pointer;
+
+  /* делаем КВАДРАТ */
+  aspect-ratio: 1 / 1;
+  display: flex;
+}
+.style-card:hover { transform: translateY(-1px); }
+.style-card.selected { border-color: #3761ff; }
+
+/* Картинка на всю карточку */
+.style-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;           /* без полос */
   display: block;
 }
 
-/* Классы под разные соотношения сторон — чтобы место на странице
-   сразу резервировалось и не было «скачков» при загрузке */
-#resultImg.ratio-1-1   { aspect-ratio: 1 / 1; }
-#resultImg.ratio-9-16  { aspect-ratio: 9 / 16; }
-#resultImg.ratio-16-9  { aspect-ratio: 16 / 9; }
+/* Градиент под текстом + подпись */
+.style-card .title {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 8px 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+  z-index: 2;
+}
+.style-card::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 42%;
+  background: linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,0));
+  z-index: 1;
+}
+
+/* ========== ВЫХОДНОЕ ИЗОБРАЖЕНИЕ ========== */
+.output {
+  margin: 24px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+.output img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* блок статуса */
+#status {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: #0b1220;
+  color: #c7d2fe;
+  padding: 10px;
+  border-radius: 10px;
+  margin-top: 12px;
+  overflow: auto;
+}
