@@ -5,170 +5,143 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AI Image Generator</title>
   <link rel="stylesheet" href="/styles.css" />
+  <meta name="theme-color" content="#3761ff" />
+  <style>
+    /* Небольшой локальный стиль для шапки/подвала (остальное — в styles.css) */
+    .header { padding: 8px 0 4px; }
+    .footer { opacity:.7; font-size:12px; margin-top:12px; }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>AI Image Generator</h1>
+    <div class="header">
+      <h1>AI Image Generator</h1>
+    </div>
 
-    <!-- Ввод и селекторы -->
-    <div class="row">
-      <input id="prompt" placeholder="Введите описание..." />
-      <select id="styleSelect" class="select">
-        <!-- 19 стилей (названия для пользователя) -->
-        <option value="Boho-Sunset">Boho Sunset</option>
-        <option value="Calm-Interior">Calm Interior</option>
-        <option value="Cherry-Gloss">Cherry Gloss</option>
-        <option value="Christal-Shine">Christal Shine</option>
-        <option value="Cinematic-Noir">Cinematic Noir</option>
-        <option value="Crystal-Spark">Crystal Spark</option>
-        <option value="Dark-Velvet">Dark Velvet</option>
-        <option value="Golden-Fantasy">Golden Fantasy</option>
-        <option value="Golden-Sparkle">Golden Sparkle</option>
-        <option value="Ivory-Light">Ivory Light</option>
-        <option value="Midnight-Glam">Midnight Glam</option>
-        <option value="Neon-Dreams">Neon Dreams</option>
-        <option value="Pastel-Glow">Pastel Glow</option>
-        <option value="Retro-Wave">Retro Wave</option>
-        <option value="Silver-Glow">Silver Glow</option>
-        <option value="Soft-Bloom">Soft Bloom</option>
-        <option value="Surrealism">Surrealism</option>
-        <option value="Urban-Chic">Urban Chic</option>
-        <option value="Vintage-Dust">Vintage Dust</option>
+    <!-- Панель управления -->
+    <div class="controls">
+      <input id="prompt" type="text" placeholder="Введите описание..." />
+      <select id="sizeSelect">
+        <option value="square">Square (1:1)</option>
+        <option value="portrait">Portrait (9:16)</option>
+        <option value="landscape">Landscape (16:9)</option>
       </select>
-
-      <select id="sizeSelect" class="select">
-        <option value="1024x1024">Square (1:1)</option>
-        <option value="1024x1792">Portrait (9:16)</option>
-        <option value="1792x1024">Landscape (16:9)</option>
-      </select>
-
-      <button id="generate" class="primary">Сгенерировать</button>
+      <button id="generateBtn" class="primary" onclick="generate()">Сгенерировать</button>
     </div>
 
-    <!-- Сетка карточек со всеми 19 превью -->
-    <div class="styles-grid" id="stylesGrid">
-      <!-- Карточки создадим скриптом, чтобы не дублировать разметку -->
+    <!-- Сетка стилей (рендерится скриптом) -->
+    <div id="stylesGrid" class="styles-grid"></div>
+
+    <!-- Статус и результат -->
+    <pre id="status" style="display:none"></pre>
+
+    <div class="output">
+      <img id="out" alt="Результат появится здесь" />
     </div>
 
-    <!-- Ответ сервера (текст) -->
-    <pre id="log" class="log"></pre>
-
-    <!-- Результат -->
-    <div id="resultWrap" class="result hidden">
-      <img id="resultImg" alt="result" />
-    </div>
+    <div class="footer">Выберите стиль (клик по карточке), задайте размер, введите промпт и нажмите «Сгенерировать».</div>
   </div>
 
   <script>
-    // === Конфигурация всех 19 стилей (имя файла + подпись) ===
+    // ====== ДАННЫЕ СТИЛЕЙ (19 штук) ======
     const STYLES = [
-      { key: "Boho-Sunset",    label: "Boho Sunset"    },
-      { key: "Calm-Interior",  label: "Calm Interior"  },
-      { key: "Cherry-Gloss",   label: "Cherry Gloss"   },
-      { key: "Christal-Shine", label: "Christal Shine" },
-      { key: "Cinematic-Noir", label: "Cinematic Noir" },
-      { key: "Crystal-Spark",  label: "Crystal Spark"  },
-      { key: "Dark-Velvet",    label: "Dark Velvet"    },
-      { key: "Golden-Fantasy", label: "Golden Fantasy" },
-      { key: "Golden-Sparkle", label: "Golden Sparkle" },
-      { key: "Ivory-Light",    label: "Ivory Light"    },
-      { key: "Midnight-Glam",  label: "Midnight Glam"  },
-      { key: "Neon-Dreams",    label: "Neon Dreams"    },
-      { key: "Pastel-Glow",    label: "Pastel Glow"    },
-      { key: "Retro-Wave",     label: "Retro Wave"     },
-      { key: "Silver-Glow",    label: "Silver Glow"    },
-      { key: "Soft-Bloom",     label: "Soft Bloom"     },
-      { key: "Surrealism",     label: "Surrealism"     },
-      { key: "Urban-Chic",     label: "Urban Chic"     },
-      { key: "Vintage-Dust",   label: "Vintage Dust"   },
+      { title: "Boho Sunset",     file: "Boho-Sunset.jpg"     },
+      { title: "Calm Interior",   file: "Calm-Interior.jpg"   },
+      { title: "Cherry Gloss",    file: "Cherry-Gloss.jpg"    },
+      { title: "Christal Shine",  file: "Christal-Shine.jpg"  },
+      { title: "Cinematic Noir",  file: "Cinematic-Noir.jpg"  },
+      { title: "Crystal Spark",   file: "Crystal-Spark.jpg"   },
+      { title: "Dark Velvet",     file: "Dark-Velvet.jpg"     },
+      { title: "Golden Fantasy",  file: "Golden-Fantasy.jpg"  },
+      { title: "Golden Sparkle",  file: "Golden-Sparkle.jpg"  },
+      { title: "Ivory Light",     file: "Ivory-Light.jpg"     },
+      { title: "Midnight Glam",   file: "Midnight-Glam.jpg"   },
+      { title: "Neon Dreams",     file: "Neon-Dreams.jpg"     },
+      { title: "Pastel Glow",     file: "Pastel-Glow.jpg"     },
+      { title: "Retro Wave",      file: "Retro-Wave.jpg"      },
+      { title: "Silver Glow",     file: "Silver-Glow.jpg"     },
+      { title: "Soft Bloom",      file: "Soft-Bloom.jpg"      },
+      { title: "Surrealism",      file: "Surrealism.jpg"      },
+      { title: "Urban Chic",      file: "Urban-Chic.jpg"      },
+      { title: "Vintage Dust",    file: "Vintage-Dust.jpg"    }
     ];
 
+    // выбранный заголовок стиля
+    let selectedTitle = STYLES[0].title;
+
+    // ====== РЕНДЕРИМ СЕТКУ СТИЛЕЙ ======
     const grid = document.getElementById("stylesGrid");
-    const styleSelect = document.getElementById("styleSelect");
 
-    // Создаём карточки превью (квадратные, берем из /public/styles/*.jpg)
-    STYLES.forEach(({ key, label }, idx) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "style-card";
-      card.dataset.key = key;
-      card.innerHTML = `
-        <div class="thumb"><img src="/styles/${key}.jpg" alt="${label}" loading="lazy"/></div>
-        <div class="style-title">${label}</div>
-      `;
-      card.addEventListener("click", () => {
-        // визуально выделим выбранную
-        document.querySelectorAll(".style-card.selected").forEach(el => el.classList.remove("selected"));
-        card.classList.add("selected");
-        // синхронизируем с селектом
-        styleSelect.value = key;
-      });
-      if (idx === 0) card.classList.add("selected");
-      grid.appendChild(card);
-    });
+    function renderStyles() {
+      grid.innerHTML = "";
+      STYLES.forEach(style => {
+        const card = document.createElement("div");
+        card.className = "style-card" + (style.title === selectedTitle ? " selected" : "");
+        card.dataset.title = style.title;
 
-    // При смене в селекте — подсветим соответствующую карточку
-    styleSelect.addEventListener("change", () => {
-      const value = styleSelect.value;
-      document.querySelectorAll(".style-card").forEach(el => {
-        el.classList.toggle("selected", el.dataset.key === value);
-      });
-    });
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        img.alt = style.title;
+        img.src = `/styles/${style.file}`;
 
-    const btn = document.getElementById("generate");
-    const promptInput = document.getElementById("prompt");
-    const sizeSelect = document.getElementById("sizeSelect");
-    const log = document.getElementById("log");
-    const resultWrap = document.getElementById("resultWrap");
-    const resultImg = document.getElementById("resultImg");
+        const caption = document.createElement("div");
+        caption.className = "title";
+        caption.textContent = style.title;
 
-    function setBusy(isBusy) {
-      btn.disabled = isBusy;
-      btn.textContent = isBusy ? "Генерирую…" : "Сгенерировать";
-    }
+        card.appendChild(img);
+        card.appendChild(caption);
 
-    btn.addEventListener("click", async () => {
-      const prompt = (promptInput.value || "").trim();
-      const style = styleSelect.value;
-      const size  = sizeSelect.value;
-
-      if (!prompt) {
-        alert("Введите описание (prompt).");
-        return;
-      }
-
-      setBusy(true);
-      log.textContent = "";
-      resultWrap.classList.add("hidden");
-      resultImg.src = "";
-
-      try {
-        const res = await fetch("/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, style, size })
+        card.addEventListener("click", () => {
+          selectedTitle = style.title;
+          // визуально помечаем выбранную
+          document.querySelectorAll(".style-card").forEach(el => el.classList.remove("selected"));
+          card.classList.add("selected");
         });
 
-        const text = await res.text();
-        log.textContent = `HTTP ${res.status}\n` + text;
+        grid.appendChild(card);
+      });
+    }
+    renderStyles();
 
-        // Попробуем достать data:image… из ответа
-        const m = text.match(/"image"\s*:\s*"([^"]+)"/);
-        if (m && m[1].startsWith("data:image")) {
-          resultImg.src = m[1];
-          // выставим класс по соотношению сторон
-          resultImg.classList.remove("ratio-1-1","ratio-9-16","ratio-16-9");
-          if (size === "1024x1024") resultImg.classList.add("ratio-1-1");
-          else if (size === "1024x1792") resultImg.classList.add("ratio-9-16");
-          else resultImg.classList.add("ratio-16-9");
-          resultWrap.classList.remove("hidden");
+    // ====== ГЕНЕРАЦИЯ ======
+    async function generate() {
+      const btn = document.getElementById("generateBtn");
+      const prompt = document.getElementById("prompt").value.trim();
+      const aspect = document.getElementById("sizeSelect").value; // square | portrait | landscape
+      const status = document.getElementById("status");
+      status.style.display = "block";
+      status.textContent = "Генерация...";
+
+      btn.disabled = true;
+
+      try {
+        const payload = {
+          prompt,
+          styleLabel: selectedTitle,
+          aspect // сервер сам решит, куда слать: OpenAI (1:1) или Replicate (9:16/16:9)
+        };
+
+        const r = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await r.json();
+        status.textContent = `HTTP ${r.status}\n` + JSON.stringify(data, null, 2);
+
+        if (data.image) {
+          const out = document.getElementById("out");
+          out.src = data.image;
+          // Автоскролл к результату
+          out.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       } catch (e) {
-        log.textContent = "Ошибка: " + e.message;
+        status.textContent = "Ошибка: " + (e?.message || e);
       } finally {
-        setBusy(false);
+        btn.disabled = false;
       }
-    });
+    }
   </script>
 </body>
 </html>
